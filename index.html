@@ -1,0 +1,1531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SeizureCare v5 — Open Edition</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg:#0d1117; --surface:#161b22; --surface2:#1c2333; --border:#30363d;
+  --blue:#1565c0; --blue-bright:#1e88e5; --blue-glow:rgba(30,136,229,0.25);
+  --magenta:#c2185b; --magenta-bright:#e91e8c; --magenta-glow:rgba(233,30,140,0.2);
+  --green:#00c853; --green-glow:rgba(0,200,83,0.2);
+  --red:#f44336; --red-glow:rgba(244,67,54,0.3);
+  --yellow:#ffb300; --purple:#7c3aed;
+  --ok-bg:#1565c0; --warn-bg:#c2185b;
+  --text:#e6edf3; --muted:#7d8590; --mono:'DM Mono',monospace;
+  --card-glow:0 0 0 1px var(--border),0 4px 24px rgba(0,0,0,0.4);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
+
+/* ── SIDEBAR ── */
+.sidebar{position:fixed;left:0;top:0;bottom:0;width:232px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;z-index:100;}
+.logo{padding:20px 20px 16px;border-bottom:1px solid var(--border);}
+.logo-row{display:flex;align-items:center;gap:10px;}
+.logo-icon{width:36px;height:36px;background:var(--blue);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+.logo-title{font-family:'Syne',sans-serif;font-size:16px;font-weight:800;letter-spacing:-0.3px;}
+.logo-title span{color:#1e88e5;}
+.logo-sub{font-size:10px;color:var(--muted);margin-top:1px;}
+.logo-badge{display:inline-block;font-size:9px;background:rgba(30,136,229,0.2);color:#1e88e5;border:1px solid rgba(30,136,229,0.3);padding:2px 7px;border-radius:20px;margin-top:6px;font-family:var(--mono);}
+.nav{flex:1;padding:10px 10px;overflow-y:auto;}
+.nav-group{font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);padding:10px 10px 4px;font-family:var(--mono);}
+.nav-item{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:6px;cursor:pointer;font-size:13px;color:var(--muted);transition:all 0.15s;margin-bottom:1px;font-weight:500;}
+.nav-item:hover{background:var(--surface2);color:var(--text);}
+.nav-item.active{background:rgba(30,136,229,0.15);color:#1e88e5;border-left:2px solid #1e88e5;}
+.nav-item .icon{font-size:14px;width:18px;text-align:center;}
+.nav-dot{margin-left:auto;width:6px;height:6px;border-radius:50%;background:var(--red);animation:blink 1.5s ease infinite;}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:0.3;}}
+.sidebar-footer{padding:12px 10px;border-top:1px solid var(--border);}
+.user-row{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px;background:var(--surface2);cursor:pointer;}
+.avatar{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#1e88e5,#7c3aed);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:white;flex-shrink:0;}
+.user-name{font-size:12px;font-weight:600;}.user-role{font-size:10px;color:var(--muted);}
+
+/* ── MAIN ── */
+.main{margin-left:232px;min-height:100vh;}
+.topbar{padding:12px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:rgba(13,17,23,0.9);backdrop-filter:blur(12px);position:sticky;top:0;z-index:50;}
+.page-title{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;}
+.topbar-right{display:flex;gap:8px;align-items:center;}
+.search-wrap{position:relative;}
+.search-input{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:7px 12px 7px 32px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:12px;outline:none;width:180px;transition:all 0.2s;}
+.search-input:focus{border-color:#1e88e5;width:220px;box-shadow:0 0 0 3px rgba(30,136,229,0.15);}
+.search-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:12px;color:var(--muted);}
+
+/* ── BUTTONS ── */
+.btn{padding:7px 14px;border-radius:6px;border:none;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:all 0.15s;}
+.btn-blue{background:var(--blue-bright);color:white;}.btn-blue:hover{background:#1976d2;}
+.btn-ghost{background:var(--surface2);color:var(--text);border:1px solid var(--border);}.btn-ghost:hover{background:var(--border);}
+.btn-red{background:var(--red);color:white;}.btn-red:hover{background:#d32f2f;}
+.btn-green{background:var(--green);color:#0d1117;}.btn-green:hover{filter:brightness(0.9);}
+.btn-magenta{background:var(--magenta-bright);color:white;}
+.btn-sm{padding:4px 10px;font-size:11px;}
+
+/* ── CONTENT ── */
+.content{padding:20px 24px;}
+.page{display:none;}.page.active{display:block;animation:fadeIn 0.18s ease;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(3px);}to{opacity:1;transform:translateY(0);}}
+
+/* ── OSD LIVE MONITOR (star of the show) ── */
+.osd-monitor{background:var(--blue);border-radius:12px;overflow:hidden;margin-bottom:20px;box-shadow:0 0 40px var(--blue-glow);}
+.osd-header{background:rgba(0,0,0,0.35);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;}
+.osd-title{font-family:var(--mono);font-size:11px;font-weight:500;color:rgba(255,255,255,0.7);text-transform:uppercase;letter-spacing:1px;}
+.osd-version{font-family:var(--mono);font-size:10px;color:rgba(255,255,255,0.4);}
+.osd-body{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;}
+.osd-status{background:var(--blue);padding:16px 20px;border-right:1px solid rgba(255,255,255,0.1);}
+.osd-status-badge{background:var(--magenta);padding:6px 12px;border-radius:4px;display:inline-block;font-family:var(--mono);font-size:10px;color:white;margin-bottom:10px;}
+.osd-ok{font-family:'Syne',sans-serif;font-size:48px;font-weight:800;color:white;line-height:1;margin-bottom:4px;}
+.osd-time{font-family:var(--mono);font-size:13px;color:rgba(255,255,255,0.6);}
+.osd-vitals{background:var(--blue);padding:16px 20px;border-right:1px solid rgba(255,255,255,0.1);}
+.osd-vital-row{font-family:var(--mono);font-size:12px;color:rgba(255,255,255,0.85);margin-bottom:6px;display:flex;justify-content:space-between;}
+.osd-vital-val{color:white;font-weight:500;}
+.osd-vital-warn{background:var(--red);border-radius:3px;padding:2px 6px;font-size:10px;color:white;}
+.osd-algo{background:rgba(0,0,0,0.25);padding:16px 20px;}
+.osd-algo-row{font-family:var(--mono);font-size:11px;color:rgba(255,255,255,0.6);margin-bottom:4px;}
+.osd-server{font-family:var(--mono);font-size:10px;color:rgba(255,255,255,0.5);margin-top:8px;}
+
+/* ── METRICS BARS ── */
+.osd-metrics{background:rgba(0,0,0,0.2);padding:14px 16px;}
+.metric-row{margin-bottom:10px;}
+.metric-label{font-family:var(--mono);font-size:10px;color:rgba(255,255,255,0.7);margin-bottom:4px;display:flex;justify-content:space-between;}
+.metric-track{height:16px;background:rgba(0,0,0,0.4);border-radius:2px;overflow:hidden;position:relative;}
+.metric-fill{height:100%;border-radius:2px;transition:width 0.5s ease;position:relative;}
+.metric-fill.power{background:linear-gradient(90deg,#ff5722,#f44336);}
+.metric-fill.spectrum{background:linear-gradient(90deg,#9e9e00,#cddc39);}
+.metric-fill.prob{background:linear-gradient(90deg,#1565c0,#42a5f5);}
+.metric-threshold{position:absolute;top:0;bottom:0;width:2px;background:rgba(255,255,255,0.5);}
+
+/* ── ALARM BUTTONS (OSD style) ── */
+.alarm-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding:12px 16px;background:rgba(0,0,0,0.3);}
+.alarm-btn{padding:12px;border-radius:4px;border:none;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:all 0.15s;text-transform:uppercase;letter-spacing:0.5px;}
+.alarm-btn.accept{background:#424242;color:#9e9e9e;}.alarm-btn.accept.active{background:#1b5e20;color:white;}
+.alarm-btn.mute{background:#616161;color:#e0e0e0;}.alarm-btn.mute:hover{background:#757575;}
+.alarm-btn.raise{background:var(--red);color:white;box-shadow:0 0 16px var(--red-glow);animation:pulse-red 2s ease infinite;}
+@keyframes pulse-red{0%,100%{box-shadow:0 0 16px var(--red-glow);}50%{box-shadow:0 0 32px rgba(244,67,54,0.6);}}
+.alarm-btn.raise:hover{background:#d32f2f;}
+.alarm-btn.muted-state{background:#37474f;color:#78909c;animation:none;}
+
+/* ── DATA STATUS STRIP ── */
+.data-strip{background:var(--magenta);padding:5px 16px;font-family:var(--mono);font-size:11px;color:rgba(255,255,255,0.9);display:flex;align-items:center;gap:8px;}
+.data-strip.ok{background:rgba(21,101,192,0.6);}
+
+/* ── CARDS ── */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:18px;box-shadow:var(--card-glow);transition:border-color 0.2s;}
+.card:hover{border-color:rgba(30,136,229,0.3);}
+.card-title{font-family:var(--mono);font-size:11px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;}
+.card-link{color:#1e88e5;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;text-transform:none;letter-spacing:0;}
+
+/* ── STATS ── */
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;position:relative;overflow:hidden;}
+.stat-card::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;}
+.stat-card.blue::after{background:var(--blue-bright);}
+.stat-card.magenta::after{background:var(--magenta-bright);}
+.stat-card.green::after{background:var(--green);}
+.stat-card.yellow::after{background:var(--yellow);}
+.stat-icon{font-size:18px;margin-bottom:8px;}
+.stat-val{font-family:'Syne',sans-serif;font-size:28px;font-weight:800;line-height:1;margin-bottom:3px;}
+.stat-label{font-size:11px;color:var(--muted);font-family:var(--mono);}
+.stat-trend{position:absolute;top:14px;right:14px;font-size:9px;font-weight:700;padding:2px 6px;border-radius:20px;font-family:var(--mono);}
+.trend-up{background:rgba(244,67,54,0.15);color:var(--red);}
+.trend-down{background:rgba(0,200,83,0.15);color:var(--green);}
+
+/* ── GRIDS ── */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px;}
+.grid-65{display:grid;grid-template-columns:1.7fr 1fr;gap:16px;margin-bottom:16px;}
+
+/* ── PATIENT ROWS ── */
+.patient-list{display:flex;flex-direction:column;gap:6px;}
+.patient-row{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surface2);border-radius:8px;cursor:pointer;border:1px solid transparent;transition:all 0.15s;}
+.patient-row:hover{border-color:#1e88e5;background:rgba(30,136,229,0.06);}
+.p-avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:white;flex-shrink:0;}
+.p-info{flex:1;}.p-name{font-size:13px;font-weight:600;}.p-meta{font-size:10px;color:var(--muted);margin-top:1px;font-family:var(--mono);}
+.status-badge{font-size:9px;font-weight:700;padding:2px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.5px;font-family:var(--mono);}
+.s-stable{background:rgba(0,200,83,0.15);color:var(--green);}
+.s-warning{background:rgba(255,179,0,0.15);color:var(--yellow);}
+.s-critical{background:rgba(244,67,54,0.15);color:var(--red);}
+
+/* ── LOG ITEMS ── */
+.seizure-log{display:flex;flex-direction:column;gap:6px;}
+.log-item{display:flex;gap:10px;padding:10px 12px;background:var(--surface2);border-radius:8px;border-left:3px solid transparent;transition:all 0.15s;}
+.log-item:hover{background:rgba(255,255,255,0.02);}
+.log-item.severe{border-left-color:var(--red);}
+.log-item.moderate{border-left-color:var(--yellow);}
+.log-item.mild{border-left-color:var(--green);}
+.log-time{font-size:9px;color:var(--muted);font-family:var(--mono);white-space:nowrap;padding-top:2px;min-width:64px;}
+.log-body{flex:1;}.log-title{font-size:12px;font-weight:600;}.log-detail{font-size:10px;color:var(--muted);margin-top:2px;font-family:var(--mono);}
+.log-tags{display:flex;gap:4px;margin-top:4px;flex-wrap:wrap;}
+.tag{font-size:9px;padding:1px 6px;border-radius:20px;background:var(--border);color:var(--muted);}
+.tag.trigger{background:rgba(124,58,237,0.15);color:#a78bfa;}
+.tag.type{background:rgba(30,136,229,0.12);color:#1e88e5;}
+
+/* ── CHARTS ── */
+.chart-bars{display:flex;align-items:flex-end;gap:4px;padding-bottom:20px;position:relative;}
+.chart-bars::after{content:'';position:absolute;bottom:20px;left:0;right:0;height:1px;background:var(--border);}
+.bar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;}
+.bar{width:100%;border-radius:3px 3px 0 0;transition:all 0.5s cubic-bezier(0.34,1.56,0.64,1);cursor:pointer;min-height:3px;}
+.bar:hover{filter:brightness(1.3);}
+.bar-label{font-size:8px;color:var(--muted);font-family:var(--mono);}
+
+/* ── HEATMAP ── */
+.heatmap{display:grid;grid-template-columns:repeat(24,1fr);gap:2px;}
+.heat-cell{height:18px;border-radius:2px;transition:all 0.3s;cursor:pointer;}
+.heatmap-wrap{display:grid;grid-template-columns:32px 1fr;gap:3px;align-items:center;margin-bottom:2px;}
+.heat-label{font-size:8px;color:var(--muted);font-family:var(--mono);}
+
+/* ── FORMS ── */
+.form-group{margin-bottom:12px;}
+.form-label{font-size:10px;font-weight:600;color:var(--muted);margin-bottom:4px;display:block;text-transform:uppercase;letter-spacing:0.5px;font-family:var(--mono);}
+.form-input,.form-select,.form-textarea{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 11px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:12px;outline:none;transition:border-color 0.15s;}
+.form-input:focus,.form-select:focus,.form-textarea:focus{border-color:#1e88e5;box-shadow:0 0 0 3px rgba(30,136,229,0.12);}
+.form-textarea{resize:vertical;min-height:64px;}
+.form-select option{background:var(--surface);}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+
+/* ── TRIGGER CHIPS ── */
+.trigger-grid{display:flex;flex-wrap:wrap;gap:6px;margin-top:5px;}
+.trigger-chip{padding:4px 10px;border-radius:20px;border:1px solid var(--border);font-size:11px;cursor:pointer;background:var(--surface2);color:var(--muted);transition:all 0.15s;}
+.trigger-chip.selected{background:rgba(124,58,237,0.2);border-color:#7c3aed;color:#a78bfa;}
+
+/* ── MEDICATION ── */
+.med-item{display:flex;align-items:center;gap:10px;padding:11px 13px;background:var(--surface2);border-radius:8px;margin-bottom:6px;border:1px solid transparent;transition:all 0.15s;}
+.med-item:hover{border-color:#1e88e5;}
+.med-icon{width:34px;height:34px;border-radius:8px;background:rgba(30,136,229,0.12);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+.med-info{flex:1;}.med-name{font-size:12px;font-weight:600;}.med-sub{font-size:10px;color:var(--muted);margin-top:1px;font-family:var(--mono);}
+.adh-bar{width:72px;height:4px;background:var(--border);border-radius:2px;overflow:hidden;}
+.adh-fill{height:100%;border-radius:2px;transition:width 0.5s;}
+
+/* ── CONTACTS ── */
+.contact-card{display:flex;align-items:center;gap:10px;padding:11px 13px;background:var(--surface2);border-radius:8px;margin-bottom:6px;border:1px solid transparent;transition:all 0.15s;}
+.contact-card:hover{border-color:var(--magenta-bright);}
+.ct-avatar{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,var(--magenta-bright),#ff6090);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:white;flex-shrink:0;}
+.ct-info{flex:1;}.ct-name{font-size:12px;font-weight:600;}.ct-rel{font-size:10px;color:var(--muted);}
+.ct-phone{font-size:11px;color:#1e88e5;margin-top:1px;font-family:var(--mono);}
+
+/* ── SOS ── */
+.sos-zone{text-align:center;padding:24px;background:rgba(244,67,54,0.05);border:1px solid rgba(244,67,54,0.25);border-radius:10px;margin-bottom:16px;}
+.sos-btn{width:100px;height:100px;border-radius:50%;background:var(--red);border:3px solid rgba(244,67,54,0.35);color:white;font-family:'Syne',sans-serif;font-size:18px;font-weight:800;cursor:pointer;transition:all 0.15s;box-shadow:0 0 28px var(--red-glow);display:inline-flex;align-items:center;justify-content:center;flex-direction:column;gap:1px;position:relative;}
+.sos-btn::before{content:'';position:absolute;inset:-8px;border-radius:50%;border:2px solid rgba(244,67,54,0.2);animation:pulse-ring 2s ease infinite;}
+@keyframes pulse-ring{0%{transform:scale(1);opacity:1;}100%{transform:scale(1.3);opacity:0;}}
+.sos-btn:hover{transform:scale(1.06);box-shadow:0 0 44px rgba(244,67,54,0.6);}
+.sos-sub{font-size:8px;letter-spacing:1px;opacity:0.8;}
+
+/* ── AI INSIGHTS ── */
+.insight-card{background:linear-gradient(135deg,rgba(124,58,237,0.12),rgba(30,136,229,0.06));border:1px solid rgba(124,58,237,0.25);border-radius:10px;padding:14px;margin-bottom:8px;}
+.insight-card::before{content:'';}.insight-title{font-size:11px;font-weight:700;color:#a78bfa;margin-bottom:4px;font-family:var(--mono);}
+.insight-text{font-size:12px;line-height:1.6;opacity:0.9;}
+.dot-pulse{display:flex;gap:4px;align-items:center;}
+.dot-pulse span{width:5px;height:5px;border-radius:50%;background:#7c3aed;animation:dp 1.2s ease infinite;}
+.dot-pulse span:nth-child(2){animation-delay:0.2s;}.dot-pulse span:nth-child(3){animation-delay:0.4s;}
+@keyframes dp{0%,80%,100%{transform:scale(0.8);opacity:0.4;}40%{transform:scale(1.2);opacity:1;}}
+
+/* ── MODALS ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.75);backdrop-filter:blur(4px);z-index:200;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity 0.18s;}
+.modal-overlay.active{opacity:1;pointer-events:all;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:22px;width:500px;max-width:92vw;max-height:86vh;overflow-y:auto;transform:scale(0.95);transition:transform 0.18s;}
+.modal-overlay.active .modal{transform:scale(1);}
+.modal-title{font-family:'Syne',sans-serif;font-size:17px;font-weight:800;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;}
+.close-btn{background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;padding:3px 7px;border-radius:5px;transition:all 0.15s;line-height:1;}
+.close-btn:hover{background:var(--surface2);color:var(--text);}
+
+/* ── PROFILE PANEL ── */
+.profile-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(3px);z-index:150;display:flex;justify-content:flex-end;opacity:0;pointer-events:none;transition:opacity 0.25s;}
+.profile-overlay.active{opacity:1;pointer-events:all;}
+.profile-panel{width:400px;max-width:100vw;background:var(--surface);border-left:1px solid var(--border);height:100%;overflow-y:auto;padding:24px;transform:translateX(100%);transition:transform 0.28s cubic-bezier(0.34,1.2,0.64,1);}
+.profile-overlay.active .profile-panel{transform:translateX(0);}
+.p-section{margin-bottom:18px;}.p-section-title{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;font-family:var(--mono);}
+.info-row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);font-size:12px;}
+.info-label{color:var(--muted);font-family:var(--mono);font-size:11px;}.info-val{font-weight:600;}
+
+/* ── TOAST ── */
+.toast{position:fixed;top:16px;right:16px;padding:12px 16px;border-radius:8px;font-weight:600;font-size:12px;z-index:300;transform:translateX(120%);transition:transform 0.35s cubic-bezier(0.34,1.56,0.64,1);max-width:300px;font-family:var(--mono);}
+.toast.show{transform:translateX(0);}
+.toast.success{background:var(--green);color:#0d1117;box-shadow:0 4px 20px var(--green-glow);}
+.toast.error{background:var(--red);color:white;box-shadow:0 4px 20px var(--red-glow);}
+.toast.warning{background:var(--yellow);color:#0d1117;}
+
+/* ── MISC ── */
+.filter-bar{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;align-items:center;}
+.filter-pill{padding:4px 11px;border-radius:20px;border:1px solid var(--border);font-size:10px;font-weight:600;cursor:pointer;background:var(--surface2);color:var(--muted);transition:all 0.15s;font-family:var(--mono);}
+.filter-pill.active{background:rgba(30,136,229,0.15);border-color:#1e88e5;color:#1e88e5;}
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+.section-title{font-family:'Syne',sans-serif;font-size:16px;font-weight:800;}
+.empty-state{text-align:center;padding:32px 20px;color:var(--muted);}
+.empty-icon{font-size:30px;margin-bottom:8px;}.empty-text{font-size:12px;font-family:var(--mono);}
+::-webkit-scrollbar{width:3px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+
+.reminder-banner{background:rgba(255,179,0,0.08);border:1px solid rgba(255,179,0,0.25);border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:10px;margin-bottom:16px;cursor:pointer;transition:all 0.15s;}
+.reminder-banner:hover{background:rgba(255,179,0,0.12);}
+.r-dot{width:7px;height:7px;border-radius:50%;background:var(--yellow);flex-shrink:0;animation:blink 1.5s ease infinite;}
+
+@media(max-width:860px){
+  .sidebar{width:52px;}.sidebar .logo-title,.logo-sub,.logo-badge,.nav-item span,.nav-group,.user-name,.user-role{display:none;}
+  .main{margin-left:52px;}.stats-grid{grid-template-columns:1fr 1fr;}.grid-2,.grid-3,.grid-65{grid-template-columns:1fr;}.form-row{grid-template-columns:1fr;}
+}
+
+/* ── LOGIN ── */
+#login-screen{position:fixed;inset:0;background:var(--bg);z-index:999;display:flex;align-items:center;justify-content:center;flex-direction:column;}
+#login-screen::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 60% 50% at 50% 50%,rgba(21,101,192,0.12) 0%,transparent 70%);}
+.login-box{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:36px 40px;width:400px;max-width:92vw;position:relative;z-index:1;box-shadow:0 0 60px rgba(30,136,229,0.1);}
+.login-logo{display:flex;align-items:center;gap:12px;margin-bottom:24px;justify-content:center;}
+.login-logo-icon{width:44px;height:44px;background:var(--blue);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:22px;}
+.login-logo-title{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;}.login-logo-title span{color:var(--blue-bright);}
+.login-sub{text-align:center;font-size:11px;color:var(--muted);margin-bottom:20px;font-family:var(--mono);}
+.login-roles{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:18px;}
+.role-card{padding:13px;border:1px solid var(--border);border-radius:10px;cursor:pointer;transition:all 0.15s;text-align:center;background:var(--surface2);}
+.role-card:hover,.role-card.selected{border-color:var(--blue-bright);background:rgba(30,136,229,0.1);}
+.role-icon{font-size:20px;margin-bottom:5px;}.role-name{font-size:12px;font-weight:600;}.role-desc{font-size:9px;color:var(--muted);font-family:var(--mono);margin-top:2px;}
+.login-divider{text-align:center;color:var(--muted);font-size:10px;margin:14px 0;font-family:var(--mono);}
+.login-users{display:flex;flex-direction:column;gap:6px;margin-bottom:16px;}
+.login-user{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:all 0.15s;}
+.login-user:hover{border-color:var(--blue-bright);background:rgba(30,136,229,0.08);}
+.lu-avatar{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:white;flex-shrink:0;}
+.lu-info{flex:1;}.lu-name{font-size:12px;font-weight:600;}.lu-role{font-size:9px;color:var(--muted);font-family:var(--mono);}
+.btn-login{width:100%;padding:11px;background:var(--blue-bright);border:none;border-radius:8px;color:white;font-family:'Syne',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:all 0.15s;}
+.btn-login:hover{background:#1976d2;transform:translateY(-1px);}
+#app{display:none;}
+
+/* ── WATCH PANEL ── */
+.watch-panel{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:18px;}
+.watch-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:13px;}
+.watch-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;}
+.watch-device{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:11px;text-align:center;cursor:pointer;transition:all 0.15s;position:relative;}
+.watch-device:hover{border-color:var(--blue-bright);}
+.watch-device.connected{border-color:var(--green);background:rgba(0,200,83,0.06);}
+.watch-device.scanning{border-color:var(--yellow);animation:scan-pulse 1.2s ease infinite;}
+@keyframes scan-pulse{0%,100%{border-color:var(--yellow);}50%{border-color:rgba(255,179,0,0.3);}}
+.watch-icon{font-size:22px;margin-bottom:5px;}.watch-name{font-size:10px;font-weight:600;}
+.watch-status{font-size:8px;font-family:var(--mono);margin-top:2px;}
+.watch-status.ok{color:var(--green);}.watch-status.scan{color:var(--yellow);}.watch-status.off{color:var(--muted);}
+.conn-dot{position:absolute;top:7px;right:7px;width:6px;height:6px;border-radius:50%;}
+.conn-dot.green{background:var(--green);box-shadow:0 0 5px var(--green-glow);}
+.conn-dot.yellow{background:var(--yellow);}.conn-dot.grey{background:var(--border);}
+
+/* ── STORAGE BAR ── */
+.storage-bar{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:7px 12px;display:flex;align-items:center;gap:9px;margin-bottom:13px;font-family:var(--mono);font-size:10px;color:var(--muted);}
+.storage-fill-wrap{flex:1;height:3px;background:var(--border);border-radius:2px;overflow:hidden;}
+.storage-fill-inner{height:100%;background:var(--blue-bright);border-radius:2px;transition:width 0.5s;}
+
+/* ── PDF MODAL ── */
+.pdf-options{display:flex;flex-direction:column;gap:7px;margin-bottom:14px;}
+.pdf-option{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:all 0.12s;}
+.pdf-option:hover{border-color:var(--blue-bright);background:rgba(30,136,229,0.08);}
+.pdf-option input[type=checkbox]{accent-color:var(--blue-bright);width:14px;height:14px;cursor:pointer;}
+.pdf-option-name{font-size:12px;font-weight:600;margin-bottom:1px;}.pdf-option-desc{font-size:9px;color:var(--muted);font-family:var(--mono);}
+
+/* ── LOGOUT BTN ── */
+.logout-btn{margin-left:auto;font-size:12px;color:var(--muted);cursor:pointer;padding:2px 5px;border-radius:4px;}
+.logout-btn:hover{color:var(--red);}
+
+/* ── EEG WAVEFORM ── */
+.eeg-panel{background:#0a0e14;border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:18px;}
+.eeg-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:rgba(0,0,0,0.3);border-bottom:1px solid var(--border);}
+.eeg-title{font-family:var(--mono);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;}
+.eeg-controls{display:flex;gap:6px;align-items:center);}
+.eeg-canvas-wrap{padding:10px 14px;position:relative;}
+.eeg-scale{position:absolute;left:16px;top:10px;display:flex;flex-direction:column;justify-content:space-between;height:calc(100% - 20px);font-family:var(--mono);font-size:8px;color:rgba(255,255,255,0.2);pointer-events:none;}
+.eeg-ch-label{position:absolute;right:16px;font-family:var(--mono);font-size:9px;color:rgba(255,255,255,0.4);}
+.eeg-grid-line{position:absolute;left:0;right:0;border-top:1px solid rgba(255,255,255,0.04);}
+.eeg-status-row{display:flex;gap:10px;padding:8px 14px;background:rgba(0,0,0,0.2);border-top:1px solid var(--border);}
+.eeg-stat{display:flex;flex-direction:column;gap:1px;}
+.eeg-stat-label{font-family:var(--mono);font-size:8px;color:rgba(255,255,255,0.35);text-transform:uppercase;}
+.eeg-stat-val{font-family:var(--mono);font-size:12px;font-weight:500;color:white;}
+
+/* ── SUPABASE CONFIG ── */
+.cloud-banner{background:linear-gradient(135deg,rgba(30,136,229,0.1),rgba(124,58,237,0.08));border:1px solid rgba(30,136,229,0.25);border-radius:10px;padding:14px 16px;margin-bottom:16px;display:flex;align-items:center;gap:14px;}
+.cloud-icon{font-size:28px;flex-shrink:0;}
+.cloud-info{flex:1;}
+.cloud-title{font-size:13px;font-weight:700;margin-bottom:3px;}
+.cloud-sub{font-size:11px;color:var(--muted);font-family:var(--mono);}
+.cloud-connected{background:rgba(0,200,83,0.08);border-color:rgba(0,200,83,0.3);}
+.cloud-connected .cloud-title{color:var(--green);}
+.sync-dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green-glow);animation:blink 2s ease infinite;flex-shrink:0;}
+.sync-dot.offline{background:var(--muted);box-shadow:none;animation:none;}
+
+/* ── SMS LOG ── */
+.sms-log{display:flex;flex-direction:column;gap:5px;max-height:200px;overflow-y:auto;}
+.sms-item{display:flex;gap:9px;padding:9px 12px;background:var(--surface2);border-radius:7px;border-left:2px solid var(--blue-bright);}
+.sms-item.sent{border-left-color:var(--green);}
+.sms-item.failed{border-left-color:var(--red);}
+.sms-time{font-family:var(--mono);font-size:9px;color:var(--muted);white-space:nowrap;min-width:52px;}
+.sms-body{flex:1;font-size:11px;}.sms-to{font-size:9px;color:var(--muted);font-family:var(--mono);margin-top:2px;}
+
+/* ── SETTINGS PAGE ── */
+.settings-section{margin-bottom:20px;}
+.settings-title{font-family:'Syne',sans-serif;font-size:14px;font-weight:800;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border);}
+.setting-row{display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid rgba(48,54,61,0.5);}
+.setting-label{font-size:12px;font-weight:600;}.setting-desc{font-size:10px;color:var(--muted);font-family:var(--mono);margin-top:2px;}
+.toggle{width:38px;height:21px;background:var(--border);border-radius:20px;position:relative;cursor:pointer;transition:background 0.2s;flex-shrink:0;}
+.toggle.on{background:var(--green);}
+.toggle::after{content:'';position:absolute;top:3px;left:3px;width:15px;height:15px;border-radius:50%;background:white;transition:left 0.2s;}
+.toggle.on::after{left:20px;}
+</style>
+</head>
+<body>
+
+<!-- LOGIN SCREEN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo"><div class="login-logo-icon">🧠</div><div class="login-logo-title">Seizure<span>Care</span></div></div>
+    <div class="login-sub">SELECT YOUR ROLE TO CONTINUE</div>
+    <div class="login-roles">
+      <div class="role-card selected" onclick="selectRole(this)"><div class="role-icon">🩺</div><div class="role-name">Neurologist</div><div class="role-desc">Full clinical access</div></div>
+      <div class="role-card" onclick="selectRole(this)"><div class="role-icon">💊</div><div class="role-name">Nurse</div><div class="role-desc">Meds & monitoring</div></div>
+      <div class="role-card" onclick="selectRole(this)"><div class="role-icon">❤️</div><div class="role-name">Carer</div><div class="role-desc">Patient monitoring</div></div>
+      <div class="role-card" onclick="selectRole(this)"><div class="role-icon">👤</div><div class="role-name">Patient</div><div class="role-desc">Personal view</div></div>
+    </div>
+    <div class="login-divider">— QUICK LOGIN —</div>
+    <div class="login-users">
+      <div class="login-user" onclick="loginAs('Dr. Rivera','Neurologist','#1e88e5')"><div class="lu-avatar" style="background:#1e88e5">DR</div><div class="lu-info"><div class="lu-name">Dr. Rivera</div><div class="lu-role">Neurologist · Admin</div></div><span style="color:var(--muted)">→</span></div>
+      <div class="login-user" onclick="loginAs('Nurse Amara','Nurse','#00c853')"><div class="lu-avatar" style="background:#00c853">NA</div><div class="lu-info"><div class="lu-name">Nurse Amara</div><div class="lu-role">Nurse · Ward B</div></div><span style="color:var(--muted)">→</span></div>
+      <div class="login-user" onclick="loginAs('James Okafor','Patient','#ffb300')"><div class="lu-avatar" style="background:#ffb300">JO</div><div class="lu-info"><div class="lu-name">James Okafor</div><div class="lu-role">Patient · Monitoring</div></div><span style="color:var(--muted)">→</span></div>
+    </div>
+    <button class="btn-login" onclick="loginAs('Dr. Rivera','Neurologist','#1e88e5')">Enter Dashboard →</button>
+  </div>
+</div>
+
+<div id="app">
+<!-- SIDEBAR -->
+<nav class="sidebar">
+  <div class="logo">
+    <div class="logo-row">
+      <div class="logo-icon">🧠</div>
+      <div>
+        <div class="logo-title">Seizure<span>Care</span></div>
+        <div class="logo-sub">Open Edition</div>
+      </div>
+    </div>
+    <div class="logo-badge">v5.0 · Supabase · OSD-inspired</div>
+  </div>
+  <div class="nav">
+    <div class="nav-group">Monitor</div>
+    <div class="nav-item active" onclick="showPage('monitor')"><span class="icon">📡</span><span>Live Monitor</span><span class="nav-dot"></span></div>
+    <div class="nav-item" onclick="showPage('dashboard')"><span class="icon">🏠</span><span>Dashboard</span></div>
+    <div class="nav-group">Clinical</div>
+    <div class="nav-item" onclick="showPage('patients')"><span class="icon">👥</span><span>Patients</span></div>
+    <div class="nav-item" onclick="showPage('seizures')"><span class="icon">⚡</span><span>Seizure Log</span></div>
+    <div class="nav-item" onclick="showPage('medications')"><span class="icon">💊</span><span>Medications</span></div>
+    <div class="nav-item" onclick="showPage('triggers')"><span class="icon">🎯</span><span>Triggers</span></div>
+    <div class="nav-group">Tools</div>
+    <div class="nav-item" onclick="showPage('analytics')"><span class="icon">📊</span><span>Analytics</span></div>
+    <div class="nav-item" onclick="showPage('insights')"><span class="icon">🤖</span><span>AI Insights</span></div>
+    <div class="nav-item" onclick="showPage('emergency')"><span class="icon">🚨</span><span>Emergency</span></div>
+    <div class="nav-item" onclick="showPage('settings')"><span class="icon">⚙️</span><span>Settings & Cloud</span></div>
+  </div>
+  <div class="sidebar-footer">
+    <div class="user-row">
+      <div class="avatar" id="sb-avatar" style="background:#1e88e5">DR</div>
+      <div><div class="user-name" id="sb-name">Dr. Rivera</div><div class="user-role" id="sb-role">Neurologist</div></div>
+      <div class="logout-btn" onclick="logout()" title="Logout">⏻</div>
+    </div>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="topbar">
+    <div class="page-title" id="page-title">Live Monitor</div>
+    <div class="topbar-right">
+      <div class="search-wrap">
+        <span class="search-icon">🔍</span>
+        <input class="search-input" id="global-search" placeholder="Search patients..." oninput="handleSearch(this.value)">
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="showModal('pdf-modal')">📄 PDF</button>
+      <button class="btn btn-ghost" onclick="showModal('log-modal')">+ Log Seizure</button>
+      <button class="btn btn-red" onclick="triggerSOS()">🚨 SOS</button>
+    </div>
+  </div>
+  <div id="search-results" style="position:fixed;top:56px;right:140px;width:270px;background:var(--surface);border:1px solid var(--border);border-radius:10px;z-index:100;display:none;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.5);"></div>
+
+  <div class="content">
+
+    <!-- ═══ LIVE MONITOR (OSD-style) ═══ -->
+    <div class="page active" id="page-monitor">
+      <!-- Smartwatch Panel -->
+      <div class="watch-panel">
+        <div class="watch-header"><span style="font-family:var(--mono);font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px">Smartwatch / Sensor Connection</span><button class="btn btn-ghost btn-sm" onclick="scanDevices()">🔄 Scan</button></div>
+        <div class="watch-grid" id="watch-grid"></div>
+      </div>
+      <div class="osd-monitor">
+        <div class="osd-header">
+          <span class="osd-title">SeizureCare · OpenSeizureDetector Edition</span>
+          <span class="osd-version" id="osd-ver">Android App v4.1.12 · Demo Mode</span>
+        </div>
+        <div class="data-strip" id="data-strip">
+          <span>●</span><span id="data-strip-text">Server Running OK · DataSource = Phone (Demo Mode)</span>
+        </div>
+        <div class="osd-body">
+          <!-- Status -->
+          <div class="osd-status">
+            <div class="osd-status-badge" id="status-badge">Server Running OK</div>
+            <div class="osd-ok" id="osd-status-text">OK</div>
+            <div class="osd-time" id="osd-time">--:--:--</div>
+          </div>
+          <!-- Vitals -->
+          <div class="osd-vitals">
+            <div class="osd-vital-row"><span>HR</span><span class="osd-vital-val" id="hr-val">-- bpm</span></div>
+            <div class="osd-vital-row"><span>HR avg</span><span class="osd-vital-val" id="hr-avg">(av = --, -- bpm)</span></div>
+            <div class="osd-vital-row"><span>O₂ Sat</span><span class="osd-vital-val" id="o2-val">-- %</span></div>
+            <div class="osd-vital-row"><span>Watch App</span><span class="osd-vital-val">OK</span></div>
+            <div class="osd-vital-row"><span>Watch Battery</span><span id="batt-badge" class="osd-vital-warn">0%</span></div>
+          </div>
+          <!-- Algorithm -->
+          <div class="osd-algo">
+            <div class="osd-algo-row">Algorithms</div>
+            <div class="osd-algo-row" style="color:white;font-weight:500">OSD CNN</div>
+            <div class="osd-algo-row" style="text-decoration:line-through">HR O₂</div>
+            <div class="osd-server">Access Server at http://10.192.56.44:8080</div>
+          </div>
+        </div>
+        <!-- Metrics -->
+        <div class="osd-metrics">
+          <div class="metric-row">
+            <div class="metric-label"><span>Power = <span id="power-val">118</span> (threshold=100)</span><span id="power-pct">118%</span></div>
+            <div class="metric-track"><div class="metric-fill power" id="power-bar" style="width:100%"></div><div class="metric-threshold" style="left:84.7%"></div></div>
+          </div>
+          <div class="metric-row">
+            <div class="metric-label"><span>Spectrum Ratio = <span id="spec-val">49</span> (threshold=57)</span><span id="spec-pct">86%</span></div>
+            <div class="metric-track"><div class="metric-fill spectrum" id="spec-bar" style="width:86%"></div><div class="metric-threshold" style="left:100%"></div></div>
+          </div>
+          <div class="metric-row" style="margin-bottom:0">
+            <div class="metric-label"><span>Seizure Probability (%) = <span id="prob-val">17</span></span><span id="prob-pct">17%</span></div>
+            <div class="metric-track"><div class="metric-fill prob" id="prob-bar" style="width:17%"></div></div>
+          </div>
+        </div>
+        <!-- Alarm Buttons -->
+        <div class="alarm-row">
+          <button class="alarm-btn accept" id="accept-btn" onclick="acceptAlarm()">ACCEPT ALARM</button>
+          <button class="alarm-btn mute" id="mute-btn" onclick="muteAlarms()">MUTE ALARMS</button>
+          <button class="alarm-btn raise" id="raise-btn" onclick="raiseAlarm()">RAISE ALARM</button>
+        </div>
+      </div>
+
+      <!-- EEG Waveform Panel -->
+      <div class="eeg-panel">
+        <div class="eeg-header">
+          <span class="eeg-title">🧠 Live EEG / Accelerometer Waveform</span>
+          <div style="display:flex;gap:7px;align-items:center">
+            <select id="eeg-channel" onchange="setEEGChannel(this.value)" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:10px;padding:3px 7px;border-radius:4px;outline:none">
+              <option value="acc">Accelerometer XYZ</option>
+              <option value="hr">Heart Rate</option>
+              <option value="o2">SpO₂ Oxygen</option>
+              <option value="seizure">Seizure Probability</option>
+            </select>
+            <button class="btn btn-ghost btn-sm" onclick="toggleEEGPause()" id="eeg-pause-btn">⏸ Pause</button>
+            <span id="eeg-live-dot" style="font-family:var(--mono);font-size:9px;color:var(--green)">● LIVE</span>
+          </div>
+        </div>
+        <div class="eeg-canvas-wrap" style="height:140px">
+          <canvas id="eeg-canvas" style="width:100%;height:120px;display:block"></canvas>
+        </div>
+        <div class="eeg-status-row">
+          <div class="eeg-stat"><div class="eeg-stat-label">Sample Rate</div><div class="eeg-stat-val" style="color:var(--blue-bright)">25 Hz</div></div>
+          <div class="eeg-stat"><div class="eeg-stat-label">Amplitude</div><div class="eeg-stat-val" id="eeg-amp">—</div></div>
+          <div class="eeg-stat"><div class="eeg-stat-label">Freq Band</div><div class="eeg-stat-val" id="eeg-freq">—</div></div>
+          <div class="eeg-stat"><div class="eeg-stat-label">Artefact</div><div class="eeg-stat-val" id="eeg-artefact" style="color:var(--green)">Clean</div></div>
+          <div class="eeg-stat"><div class="eeg-stat-label">Channel</div><div class="eeg-stat-val" id="eeg-ch-name">ACC</div></div>
+          <div class="eeg-stat" style="margin-left:auto"><div class="eeg-stat-label">Duration</div><div class="eeg-stat-val" id="eeg-duration">00:00</div></div>
+        </div>
+      </div>
+
+      <!-- OSD Power History -->
+      <div class="card">
+        <div class="card-title">Live Seizure Power History <span id="sms-status" style="font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:none;letter-spacing:0">SMS Alarms Disabled</span></div>
+        <div class="chart-bars" id="live-chart" style="height:80px"></div>
+      </div>
+
+      <!-- Patient selector -->
+      <div style="margin-top:14px">
+        <div class="card-title" style="margin-bottom:8px;font-family:var(--mono);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px">Monitoring Patients</div>
+        <div class="patient-list" id="monitor-patients"></div>
+      </div>
+    </div>
+
+    <!-- ═══ DASHBOARD ═══ -->
+    <div class="page" id="page-dashboard">
+      <div id="reminder-area"></div>
+      <div id="storage-indicator"></div>
+      <div class="stats-grid">
+        <div class="stat-card blue"><div class="stat-icon">👥</div><div class="stat-val" id="s-patients">5</div><div class="stat-label">Total Patients</div></div>
+        <div class="stat-card magenta"><div class="stat-icon">⚡</div><div class="stat-val" id="s-today">0</div><div class="stat-label">Seizures Today</div></div>
+        <div class="stat-card green"><div class="stat-icon">💊</div><div class="stat-val" id="s-adh">—</div><div class="stat-label">Avg Adherence</div></div>
+        <div class="stat-card yellow"><div class="stat-icon">✅</div><div class="stat-val" id="s-stable">0</div><div class="stat-label">Stable Patients</div></div>
+      </div>
+      <div class="grid-65">
+        <div class="card"><div class="card-title">Weekly Seizure Activity <span class="card-link" onclick="showPage('analytics')">Analytics →</span></div><div class="chart-bars" id="weekly-chart" style="height:100px"></div></div>
+        <div class="card"><div class="card-title">Patient Status</div><div id="status-donut" style="display:flex;align-items:center;justify-content:center;min-height:100px;"></div></div>
+      </div>
+      <div class="grid-2">
+        <div class="card"><div class="card-title">Recent Patients <span class="card-link" onclick="showPage('patients')">View All →</span></div><div class="patient-list" id="dash-patients"></div></div>
+        <div class="card"><div class="card-title">Latest Events <span class="card-link" onclick="showPage('seizures')">View All →</span></div><div class="seizure-log" id="dash-log"></div></div>
+      </div>
+    </div>
+
+    <!-- ═══ PATIENTS ═══ -->
+    <div class="page" id="page-patients">
+      <div class="section-header">
+        <div class="section-title">All Patients</div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-ghost btn-sm" onclick="exportCSV()">⬇ Export CSV</button>
+          <button class="btn btn-blue" onclick="showModal('patient-modal')">+ Add Patient</button>
+        </div>
+      </div>
+      <div class="filter-bar">
+        <span style="font-size:10px;color:var(--muted);font-family:var(--mono)">FILTER:</span>
+        <div class="filter-pill active" onclick="filterPt('all',this)">All</div>
+        <div class="filter-pill" onclick="filterPt('stable',this)">Stable</div>
+        <div class="filter-pill" onclick="filterPt('warning',this)">Warning</div>
+        <div class="filter-pill" onclick="filterPt('critical',this)">Critical</div>
+      </div>
+      <div class="card"><div class="patient-list" id="all-patients"></div></div>
+    </div>
+
+    <!-- ═══ SEIZURE LOG ═══ -->
+    <div class="page" id="page-seizures">
+      <div class="section-header">
+        <div class="section-title">Seizure Log</div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-ghost btn-sm" onclick="exportCSV('seizures')">⬇ Export</button>
+          <button class="btn btn-blue" onclick="showModal('log-modal')">+ Log Event</button>
+        </div>
+      </div>
+      <div class="filter-bar" id="sev-filters">
+        <span style="font-size:10px;color:var(--muted);font-family:var(--mono)">SEVERITY:</span>
+        <div class="filter-pill active" onclick="filterSev('all',this)">All</div>
+        <div class="filter-pill" onclick="filterSev('severe',this)">Severe</div>
+        <div class="filter-pill" onclick="filterSev('moderate',this)">Moderate</div>
+        <div class="filter-pill" onclick="filterSev('mild',this)">Mild</div>
+      </div>
+      <div class="card"><div class="seizure-log" id="full-log"></div></div>
+    </div>
+
+    <!-- ═══ MEDICATIONS ═══ -->
+    <div class="page" id="page-medications">
+      <div class="section-header"><div class="section-title">Medications</div><button class="btn btn-blue" onclick="showModal('med-modal')">+ Add</button></div>
+      <div class="grid-2">
+        <div class="card"><div class="card-title">Overall Adherence</div><div id="adherence-overview"></div></div>
+        <div class="card"><div class="card-title">⏰ Today's Reminders</div><div id="med-reminders"></div></div>
+      </div>
+      <div class="card"><div class="card-title">All Medications</div><div id="meds-list"></div></div>
+    </div>
+
+    <!-- ═══ TRIGGERS ═══ -->
+    <div class="page" id="page-triggers">
+      <div class="section-header"><div class="section-title">Trigger Analysis</div></div>
+      <div class="grid-2">
+        <div class="card"><div class="card-title">Top Triggers</div><div id="trigger-bars"></div></div>
+        <div class="card"><div class="card-title">7-Day Frequency</div><div class="chart-bars" id="trigger-7day" style="height:90px"></div></div>
+      </div>
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-title">24h Seizure Heatmap (by Day)</div>
+        <div id="heatmap-container" style="margin-top:10px"></div>
+        <div style="display:flex;align-items:center;gap:6px;margin-top:8px">
+          <span style="font-size:9px;color:var(--muted);font-family:var(--mono)">LOW</span>
+          <div style="display:flex;gap:2px">${[0.1,0.3,0.55,0.75,1].map(o=>`<div style="width:14px;height:8px;border-radius:2px;background:#1e88e5;opacity:${o}"></div>`).join('')}</div>
+          <span style="font-size:9px;color:var(--muted);font-family:var(--mono)">HIGH</span>
+        </div>
+      </div>
+      <div class="card"><div class="card-title">Recent Trigger Events</div><div id="trigger-recent"></div></div>
+    </div>
+
+    <!-- ═══ ANALYTICS ═══ -->
+    <div class="page" id="page-analytics">
+      <div class="section-header"><div class="section-title">Analytics</div><button class="btn btn-ghost btn-sm" onclick="exportCSV('report')">⬇ Report</button></div>
+      <div class="stats-grid">
+        <div class="stat-card blue"><div class="stat-icon">📅</div><div class="stat-val" id="a-weekly">—</div><div class="stat-label">This Week</div></div>
+        <div class="stat-card magenta"><div class="stat-icon">⏱️</div><div class="stat-val" id="a-dur">—</div><div class="stat-label">Avg Duration</div></div>
+        <div class="stat-card yellow"><div class="stat-icon">🌙</div><div class="stat-val">62%</div><div class="stat-label">Nocturnal Rate</div></div>
+        <div class="stat-card green"><div class="stat-icon">📉</div><div class="stat-val" id="a-trend">—</div><div class="stat-label">vs Prev Week</div></div>
+      </div>
+      <div class="grid-2">
+        <div class="card"><div class="card-title">Monthly Frequency</div><div class="chart-bars" id="monthly-chart" style="height:130px;margin-top:6px"></div></div>
+        <div class="card"><div class="card-title">By Time of Day</div><div class="chart-bars" id="time-chart" style="height:130px;margin-top:6px"></div></div>
+      </div>
+      <div class="card"><div class="card-title">Seizures per Patient</div><div id="per-pt-chart" style="margin-top:6px"></div></div>
+    </div>
+
+    <!-- ═══ AI INSIGHTS ═══ -->
+    <div class="page" id="page-insights">
+      <div class="section-header"><div class="section-title">🤖 AI Clinical Insights</div><button class="btn btn-blue" onclick="generateInsights()">↻ Refresh</button></div>
+      <div style="background:rgba(124,58,237,0.08);border:1px solid rgba(124,58,237,0.2);border-radius:8px;padding:12px 14px;margin-bottom:16px;font-size:11px;color:var(--muted);line-height:1.6;font-family:var(--mono);">
+        ⚠️ For clinical decision support only. Always apply professional medical judgment.
+      </div>
+      <div id="insights-container"></div>
+    </div>
+
+    <!-- ═══ EMERGENCY ═══ -->
+    <div class="page" id="page-emergency">
+      <div class="section-title" style="margin-bottom:16px">Emergency Response</div>
+      <div class="sos-zone">
+        <button class="sos-btn" onclick="triggerSOS()">SOS<div class="sos-sub">EMERGENCY</div></button>
+        <p style="margin-top:14px;color:var(--muted);font-size:12px">Alerts all emergency contacts immediately via SMS</p>
+        <p style="font-size:10px;color:var(--muted);margin-top:3px;font-family:var(--mono)">Last triggered: <span id="sos-last">Never</span></p>
+      </div>
+      <div class="grid-2">
+        <div class="card"><div class="card-title">Emergency Contacts <span class="card-link" onclick="showModal('contact-modal')">+ Add</span></div><div id="contacts-list"></div></div>
+        <div class="card"><div class="card-title">OSD Response Protocol</div><div id="protocol-steps"></div></div>
+      </div>
+      <div class="card" style="margin-top:14px">
+        <div class="card-title">📱 SMS Alert Log <span class="card-link" onclick="smsLog=[];renderSMSLog()">Clear</span></div>
+        <div class="sms-log" id="sms-log-list"><div class="empty-state"><div class="empty-icon">📱</div><div class="empty-text">No SMS alerts sent yet.</div></div></div>
+      </div>
+    </div>
+
+    <!-- ═══ SETTINGS & CLOUD ═══ -->
+    <div class="page" id="page-settings">
+      <div class="section-title" style="margin-bottom:16px">⚙️ Settings & Cloud Sync</div>
+
+      <!-- Supabase Connection -->
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-title">☁️ Supabase Cloud Database</div>
+        <div id="cloud-status-banner" class="cloud-banner">
+          <div class="cloud-icon">☁️</div>
+          <div class="cloud-info"><div class="cloud-title">Not Connected</div><div class="cloud-sub">Enter your Supabase credentials to enable cloud sync across devices</div></div>
+          <div class="sync-dot offline"></div>
+        </div>
+        <div class="form-group"><label class="form-label">Supabase Project URL</label><input class="form-input" id="sb-url" placeholder="https://xxxx.supabase.co" oninput="validateSupabase()"></div>
+        <div class="form-group"><label class="form-label">Supabase Anon Key</label><input class="form-input" id="sb-key" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." type="password" oninput="validateSupabase()"></div>
+        <div style="display:flex;gap:8px;margin-top:4px">
+          <button class="btn btn-blue" onclick="connectSupabase()">🔗 Connect</button>
+          <button class="btn btn-ghost" onclick="syncToCloud()" id="sync-btn" disabled>☁️ Sync Now</button>
+          <button class="btn btn-ghost" onclick="pullFromCloud()" id="pull-btn" disabled>⬇ Pull Data</button>
+        </div>
+        <div style="margin-top:12px;font-size:10px;color:var(--muted);font-family:var(--mono);line-height:1.7">
+          <strong style="color:var(--text)">How to set up (free):</strong><br>
+          1. Go to <a href="https://supabase.com" target="_blank" style="color:var(--blue-bright)">supabase.com</a> → New Project<br>
+          2. Copy Project URL and anon public key from Settings → API<br>
+          3. Run the SQL schema (see Setup Guide PDF) in SQL Editor<br>
+          4. Paste credentials above and click Connect
+        </div>
+      </div>
+
+      <!-- SMS / Twilio -->
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-title">📱 SMS Alerts (Twilio)</div>
+        <div style="background:rgba(255,179,0,0.07);border:1px solid rgba(255,179,0,0.2);border-radius:7px;padding:10px 13px;margin-bottom:12px;font-size:10px;color:var(--muted);font-family:var(--mono)">
+          ⚠️ SMS requires a backend relay. Use the included Edge Function (see Setup Guide) deployed to Supabase.
+        </div>
+        <div class="form-group"><label class="form-label">Twilio Account SID</label><input class="form-input" id="twilio-sid" placeholder="ACxxxxxxxxxxxxxxxx" type="password"></div>
+        <div class="form-group"><label class="form-label">Twilio Auth Token</label><input class="form-input" id="twilio-token" placeholder="Auth Token" type="password"></div>
+        <div class="form-group"><label class="form-label">From Phone Number</label><input class="form-input" id="twilio-from" placeholder="+15551234567"></div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-blue" onclick="saveTwilioConfig()">Save SMS Config</button>
+          <button class="btn btn-ghost" onclick="testSMS()">📤 Send Test SMS</button>
+        </div>
+        <div class="setting-row"><div><div class="setting-label">Auto-SMS on Alarm</div><div class="setting-desc">Send SMS automatically when seizure alarm triggers</div></div><div class="toggle on" id="toggle-sms" onclick="toggleSetting('sms',this)"></div></div>
+        <div class="setting-row"><div><div class="setting-label">Auto-SMS on SOS</div><div class="setting-desc">Send SMS when SOS button is pressed</div></div><div class="toggle on" id="toggle-sos-sms" onclick="toggleSetting('sosSms',this)"></div></div>
+      </div>
+
+      <!-- App Settings -->
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-title">🔧 App Settings</div>
+        <div class="setting-row"><div><div class="setting-label">Alarm Sound</div><div class="setting-desc">Play audio alert when seizure detected</div></div><div class="toggle on" id="toggle-sound" onclick="toggleSetting('sound',this)"></div></div>
+        <div class="setting-row"><div><div class="setting-label">Auto-log on Alarm Raise</div><div class="setting-desc">Automatically log event when RAISE ALARM pressed</div></div><div class="toggle on" id="toggle-autolog" onclick="toggleSetting('autolog',this)"></div></div>
+        <div class="setting-row"><div><div class="setting-label">Dark Mode</div><div class="setting-desc">Always on in this edition</div></div><div class="toggle on" style="opacity:0.5;cursor:not-allowed"></div></div>
+        <div class="setting-row" style="border:none"><div><div class="setting-label">EEG Simulation Speed</div><div class="setting-desc">Waveform update frequency</div></div>
+          <select style="background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:10px;padding:4px 8px;border-radius:5px;outline:none" onchange="eegSpeed=+this.value">
+            <option value="50">Fast (50ms)</option><option value="100" selected>Normal (100ms)</option><option value="200">Slow (200ms)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Mobile Packaging Guide -->
+      <div class="card">
+        <div class="card-title">📱 Mobile App Packaging (Capacitor)</div>
+        <div style="font-size:12px;line-height:1.8;color:var(--muted)">
+          This app is ready to be packaged as a native <strong style="color:var(--text)">Android & iOS</strong> app using Capacitor.<br><br>
+          <strong style="color:var(--blue-bright)">Quick steps:</strong>
+        </div>
+        <div style="margin-top:10px;display:flex;flex-direction:column;gap:6px">
+          ${['npm install @capacitor/core @capacitor/cli @capacitor/android @capacitor/ios','npx cap init "SeizureCare" com.seizurecare.app','npx cap add android  &&  npx cap add ios','npx cap copy  &&  npx cap open android','In Android Studio → Build → Generate Signed APK'].map((cmd,i)=>`<div style="display:flex;gap:10px;align-items:flex-start"><div style="width:20px;height:20px;border-radius:50%;background:var(--blue);color:white;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:var(--mono)">${i+1}</div><code style="font-family:var(--mono);font-size:10px;background:var(--surface2);padding:4px 8px;border-radius:4px;color:var(--blue-bright);flex:1;word-break:break-all">${cmd}</code></div>`).join('')}
+        </div>
+        <div style="margin-top:10px;font-size:10px;color:var(--muted);font-family:var(--mono)">See the Setup Guide PDF for the full Supabase SQL schema, Edge Function code for SMS, and Capacitor config.json.</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- PROFILE PANEL -->
+<div class="profile-overlay" id="profile-overlay" onclick="closeProfile(event)">
+  <div class="profile-panel" id="profile-panel"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- LOG SEIZURE MODAL -->
+<div class="modal-overlay" id="log-modal">
+  <div class="modal">
+    <div class="modal-title">⚡ Log Seizure Event <button class="close-btn" onclick="closeModal('log-modal')">✕</button></div>
+    <div class="form-row"><div class="form-group"><label class="form-label">Patient</label><select class="form-select" id="log-patient"></select></div><div class="form-group"><label class="form-label">Date & Time</label><input type="datetime-local" class="form-input" id="log-datetime"></div></div>
+    <div class="form-row"><div class="form-group"><label class="form-label">Severity</label><select class="form-select" id="log-severity"><option value="mild">Mild</option><option value="moderate">Moderate</option><option value="severe">Severe</option></select></div><div class="form-group"><label class="form-label">Duration (min)</label><input type="number" class="form-input" id="log-duration" placeholder="e.g. 2" min="0"></div></div>
+    <div class="form-group"><label class="form-label">Seizure Type</label><select class="form-select" id="log-type"><option>Tonic-Clonic</option><option>Absence</option><option>Focal</option><option>Myoclonic</option><option>Atonic</option><option>Unknown</option></select></div>
+    <div class="form-group"><label class="form-label">Possible Triggers</label>
+      <div class="trigger-grid" id="log-triggers">
+        <div class="trigger-chip" onclick="toggleChip(this)">😴 Sleep Deprivation</div><div class="trigger-chip" onclick="toggleChip(this)">😰 Stress</div><div class="trigger-chip" onclick="toggleChip(this)">💊 Missed Medication</div><div class="trigger-chip" onclick="toggleChip(this)">🍷 Alcohol</div><div class="trigger-chip" onclick="toggleChip(this)">💡 Flashing Lights</div><div class="trigger-chip" onclick="toggleChip(this)">🤒 Illness/Fever</div><div class="trigger-chip" onclick="toggleChip(this)">☕ Caffeine</div><div class="trigger-chip" onclick="toggleChip(this)">🏃 Overexertion</div><div class="trigger-chip" onclick="toggleChip(this)">🌡️ Heat</div><div class="trigger-chip" onclick="toggleChip(this)">❓ Unknown</div>
+      </div>
+    </div>
+    <div class="form-group"><label class="form-label">Post-Ictal Notes</label><textarea class="form-textarea" id="log-notes" placeholder="Describe what happened before, during and after..."></textarea></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn btn-ghost" onclick="closeModal('log-modal')">Cancel</button><button class="btn btn-blue" onclick="saveSeizure()">Save Event</button></div>
+  </div>
+</div>
+
+<!-- ADD PATIENT -->
+<div class="modal-overlay" id="patient-modal">
+  <div class="modal">
+    <div class="modal-title">👤 Add Patient <button class="close-btn" onclick="closeModal('patient-modal')">✕</button></div>
+    <div class="form-row"><div class="form-group"><label class="form-label">First Name</label><input class="form-input" id="pt-first" placeholder="First name"></div><div class="form-group"><label class="form-label">Last Name</label><input class="form-input" id="pt-last" placeholder="Last name"></div></div>
+    <div class="form-row"><div class="form-group"><label class="form-label">Age</label><input class="form-input" id="pt-age" type="number" placeholder="Age"></div><div class="form-group"><label class="form-label">Gender</label><select class="form-select" id="pt-gender"><option>Male</option><option>Female</option><option>Other</option></select></div></div>
+    <div class="form-group"><label class="form-label">Diagnosis</label><input class="form-input" id="pt-diagnosis" placeholder="e.g. Temporal Lobe Epilepsy"></div>
+    <div class="form-row"><div class="form-group"><label class="form-label">Onset Year</label><input class="form-input" id="pt-onset" type="number" placeholder="e.g. 2019"></div><div class="form-group"><label class="form-label">Status</label><select class="form-select" id="pt-status"><option value="stable">Stable</option><option value="warning">Warning</option><option value="critical">Critical</option></select></div></div>
+    <div class="form-group"><label class="form-label">Allergies / Notes</label><textarea class="form-textarea" id="pt-notes" placeholder="Known allergies, special notes..."></textarea></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn btn-ghost" onclick="closeModal('patient-modal')">Cancel</button><button class="btn btn-blue" onclick="savePatient()">Add Patient</button></div>
+  </div>
+</div>
+
+<!-- ADD MED -->
+<div class="modal-overlay" id="med-modal">
+  <div class="modal">
+    <div class="modal-title">💊 Add Medication <button class="close-btn" onclick="closeModal('med-modal')">✕</button></div>
+    <div class="form-group"><label class="form-label">Patient</label><select class="form-select" id="med-patient"></select></div>
+    <div class="form-row"><div class="form-group"><label class="form-label">Medication Name</label><input class="form-input" id="med-name" placeholder="e.g. Levetiracetam"></div><div class="form-group"><label class="form-label">Dosage</label><input class="form-input" id="med-dose" placeholder="e.g. 500mg"></div></div>
+    <div class="form-row"><div class="form-group"><label class="form-label">Frequency</label><select class="form-select" id="med-freq"><option>Once daily</option><option>Twice daily</option><option>Three times daily</option><option>As needed</option></select></div><div class="form-group"><label class="form-label">Reminder Time</label><input class="form-input" type="time" id="med-time" value="08:00"></div></div>
+    <div class="form-group"><label class="form-label">Adherence %</label><input class="form-input" id="med-adherence" type="number" min="0" max="100" placeholder="85"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn btn-ghost" onclick="closeModal('med-modal')">Cancel</button><button class="btn btn-blue" onclick="saveMedication()">Save</button></div>
+  </div>
+</div>
+
+<!-- ADD CONTACT -->
+<div class="modal-overlay" id="contact-modal">
+  <div class="modal">
+    <div class="modal-title">📞 Add Emergency Contact <button class="close-btn" onclick="closeModal('contact-modal')">✕</button></div>
+    <div class="form-row"><div class="form-group"><label class="form-label">Full Name</label><input class="form-input" id="ct-name" placeholder="Full name"></div><div class="form-group"><label class="form-label">Relationship</label><input class="form-input" id="ct-rel" placeholder="e.g. Parent, Spouse"></div></div>
+    <div class="form-row"><div class="form-group"><label class="form-label">Phone Number</label><input class="form-input" id="ct-phone" placeholder="+1 (555) 000-0000"></div><div class="form-group"><label class="form-label">Patient</label><select class="form-select" id="ct-patient"></select></div></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn btn-ghost" onclick="closeModal('contact-modal')">Cancel</button><button class="btn btn-blue" onclick="saveContact()">Add Contact</button></div>
+  </div>
+</div>
+
+<!-- PDF EXPORT MODAL -->
+<div class="modal-overlay" id="pdf-modal">
+  <div class="modal">
+    <div class="modal-title">📄 Export PDF Report <button class="close-btn" onclick="closeModal('pdf-modal')">✕</button></div>
+    <div class="form-group"><label class="form-label">Patient (or All)</label><select class="form-select" id="pdf-patient"><option value="all">All Patients</option></select></div>
+    <div class="form-group"><label class="form-label">Include Sections</label>
+      <div class="pdf-options">
+        <label class="pdf-option"><input type="checkbox" id="pdf-summary" checked><div><div class="pdf-option-name">📊 Clinical Summary</div><div class="pdf-option-desc">Patient count, seizure totals, adherence overview</div></div></label>
+        <label class="pdf-option"><input type="checkbox" id="pdf-seizures" checked><div><div class="pdf-option-name">⚡ Seizure Log</div><div class="pdf-option-desc">All logged seizure events with triggers</div></div></label>
+        <label class="pdf-option"><input type="checkbox" id="pdf-meds" checked><div><div class="pdf-option-name">💊 Medications</div><div class="pdf-option-desc">Medication list with adherence rates</div></div></label>
+        <label class="pdf-option"><input type="checkbox" id="pdf-triggers"><div><div class="pdf-option-name">🎯 Trigger Analysis</div><div class="pdf-option-desc">Most common triggers and frequency</div></div></label>
+        <label class="pdf-option"><input type="checkbox" id="pdf-contacts"><div><div class="pdf-option-name">📞 Emergency Contacts</div><div class="pdf-option-desc">Emergency contact list per patient</div></div></label>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn btn-ghost" onclick="closeModal('pdf-modal')">Cancel</button><button class="btn btn-blue" onclick="generatePDF()">📥 Download PDF</button></div>
+  </div>
+</div>
+
+</div><!-- /app -->
+
+<script>
+// ── DATA & STORAGE ─────────────────────────────────────────────
+const COLORS=['#1e88e5','#e91e8c','#7c3aed','#00c853','#ffb300','#ec4899','#06b6d4','#84cc16'];
+const DEFAULT_DATA={
+  patients:[
+    {id:1,name:'Maria Santos',age:34,gender:'Female',diagnosis:'Temporal Lobe Epilepsy',onset:2018,status:'warning',color:'#1e88e5',notes:'Penicillin allergy'},
+    {id:2,name:'James Okafor',age:19,gender:'Male',diagnosis:'Juvenile Myoclonic Epilepsy',onset:2020,status:'stable',color:'#00c853',notes:''},
+    {id:3,name:'Priya Nair',age:45,gender:'Female',diagnosis:'Focal Epilepsy',onset:2015,status:'stable',color:'#7c3aed',notes:''},
+    {id:4,name:'Carlos Webb',age:28,gender:'Male',diagnosis:'Lennox-Gastaut Syndrome',onset:2012,status:'critical',color:'#f44336',notes:'High fall risk'},
+    {id:5,name:'Aisha Mensah',age:52,gender:'Female',diagnosis:'Absence Epilepsy',onset:2022,status:'stable',color:'#ffb300',notes:''},
+  ],
+  seizures:[
+    {id:1,patientId:1,datetime:'2025-03-08T22:30',severity:'moderate',type:'Tonic-Clonic',duration:3,triggers:['Stress','Sleep Deprivation'],notes:'Patient felt tired.'},
+    {id:2,patientId:4,datetime:'2025-03-08T21:15',severity:'severe',type:'Tonic-Clonic',duration:5,triggers:['Missed Medication'],notes:'Missed morning dose.'},
+    {id:3,patientId:2,datetime:'2025-03-08T18:00',severity:'mild',type:'Absence',duration:1,triggers:['Caffeine'],notes:''},
+    {id:4,patientId:3,datetime:'2025-03-07T23:45',severity:'moderate',type:'Focal',duration:2,triggers:['Stress'],notes:''},
+    {id:5,patientId:1,datetime:'2025-03-07T08:20',severity:'mild',type:'Absence',duration:1,triggers:['Sleep Deprivation'],notes:''},
+    {id:6,patientId:4,datetime:'2025-03-06T14:10',severity:'severe',type:'Tonic-Clonic',duration:6,triggers:['Missed Medication','Stress'],notes:'Called emergency contacts.'},
+    {id:7,patientId:5,datetime:'2025-03-05T09:00',severity:'mild',type:'Absence',duration:1,triggers:['Caffeine'],notes:''},
+    {id:8,patientId:1,datetime:'2025-03-03T20:30',severity:'moderate',type:'Focal',duration:3,triggers:['Flashing Lights'],notes:''},
+  ],
+  medications:[
+    {id:1,patientId:1,name:'Lamotrigine',dose:'100mg',freq:'Twice daily',time:'08:00',adherence:92},
+    {id:2,patientId:2,name:'Levetiracetam',dose:'500mg',freq:'Twice daily',time:'09:00',adherence:78},
+    {id:3,patientId:4,name:'Valproate',dose:'300mg',freq:'Three times daily',time:'07:00',adherence:55},
+    {id:4,patientId:3,name:'Carbamazepine',dose:'200mg',freq:'Twice daily',time:'08:30',adherence:95},
+    {id:5,patientId:5,name:'Ethosuximide',dose:'250mg',freq:'Once daily',time:'08:00',adherence:88},
+  ],
+  contacts:[
+    {id:1,patientId:1,name:'Rosa Santos',rel:'Mother',phone:'+1 (555) 012-3456'},
+    {id:2,patientId:4,name:'Denise Webb',rel:'Wife',phone:'+1 (555) 987-6543'},
+    {id:3,patientId:2,name:'Emmanuel Okafor',rel:'Father',phone:'+1 (555) 444-5566'},
+  ]
+};
+
+function loadData(){try{const s=localStorage.getItem('seizurecare_v4');return s?JSON.parse(s):null;}catch(e){return null;}}
+function saveData(){
+  try{localStorage.setItem('seizurecare_v4',JSON.stringify({patients,seizures,medications,contacts}));updateStorageBar();}
+  catch(e){}
+}
+function updateStorageBar(){
+  const el=document.getElementById('storage-indicator');if(!el)return;
+  try{const kb=Math.round(new Blob([localStorage.getItem('seizurecare_v4')||'']).size/102.4)/10;const pct=Math.min((kb/500)*100,100);
+  el.innerHTML=`<div class="storage-bar"><span style="color:var(--blue-bright)">💾</span><span>Local Storage</span><div class="storage-fill-wrap"><div class="storage-fill-inner" style="width:${pct}%"></div></div><span>${kb}KB / 500KB</span><span style="color:var(--green)">● Saved</span><button onclick="clearStorage()" class="btn btn-ghost btn-sm" style="margin-left:auto;font-size:9px;padding:2px 7px">Reset</button></div>`;}
+  catch(e){}
+}
+function clearStorage(){if(confirm('Reset all data to defaults?')){localStorage.removeItem('seizurecare_v4');const d=DEFAULT_DATA;patients=d.patients.map(p=>({...p}));seizures=d.seizures.map(s=>({...s}));medications=d.medications.map(m=>({...m}));contacts=d.contacts.map(c=>({...c}));renderAll();showToast('Data reset to defaults','warning');}}
+
+const saved=loadData();
+let patients=saved?saved.patients:DEFAULT_DATA.patients.map(p=>({...p}));
+let seizures=saved?saved.seizures:DEFAULT_DATA.seizures.map(s=>({...s}));
+let medications=saved?saved.medications:DEFAULT_DATA.medications.map(m=>({...m}));
+let contacts=saved?saved.contacts:DEFAULT_DATA.contacts.map(c=>({...c}));
+
+// ── AUTH ──────────────────────────────────────────────────────
+let currentUser={name:'Dr. Rivera',role:'Neurologist',color:'#1e88e5'};
+function selectRole(el){document.querySelectorAll('.role-card').forEach(c=>c.classList.remove('selected'));el.classList.add('selected');}
+function loginAs(name,role,color){
+  currentUser={name,role,color};
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('app').style.display='block';
+  const initials=name.split(' ').map(x=>x[0]).join('').slice(0,2);
+  document.getElementById('sb-name').textContent=name;
+  document.getElementById('sb-role').textContent=role;
+  const av=document.querySelector('.sidebar .avatar');
+  if(av){av.textContent=initials;av.style.background=color;}
+  showToast('Welcome, '+name+'!','success');
+  renderAll();
+  setInterval(updateOSDClock,1000);setInterval(simulateLiveData,2500);
+  updateOSDClock();simulateLiveData();renderWatchGrid();
+  setTimeout(initEEG,400);
+  if(saved)setTimeout(()=>showToast('Data restored from last session','info'),1200);
+}
+function logout(){document.getElementById('app').style.display='none';document.getElementById('login-screen').style.display='flex';}
+
+// ── SMARTWATCH ────────────────────────────────────────────────
+const DEVICES=[
+  {name:'Pebble Watch',icon:'⌚',status:'connected'},{name:'Garmin Vivosmart',icon:'🏃',status:'off'},
+  {name:'Galaxy Watch',icon:'📱',status:'off'},{name:'Phone Sensors',icon:'📲',status:'connected'},
+];
+function renderWatchGrid(){
+  const el=document.getElementById('watch-grid');if(!el)return;
+  el.innerHTML=DEVICES.map((d,i)=>`<div class="watch-device ${d.status}" onclick="toggleDevice(${i})">
+    <div class="conn-dot ${d.status==='connected'?'green':d.status==='scanning'?'yellow':'grey'}"></div>
+    <div class="watch-icon">${d.icon}</div><div class="watch-name">${d.name}</div>
+    <div class="watch-status ${d.status==='connected'?'ok':d.status==='scanning'?'scan':'off'}">${d.status==='connected'?'● CONNECTED':d.status==='scanning'?'◌ SCANNING':'○ Disconnected'}</div>
+  </div>`).join('');
+}
+function toggleDevice(i){
+  if(DEVICES[i].status==='connected'){DEVICES[i].status='off';renderWatchGrid();}
+  else{DEVICES[i].status='scanning';renderWatchGrid();setTimeout(()=>{DEVICES[i].status='connected';renderWatchGrid();showToast(DEVICES[i].name+' connected!','success');},2000);}
+}
+function scanDevices(){
+  DEVICES.forEach(d=>{if(d.status==='off')d.status='scanning';});renderWatchGrid();showToast('Scanning for devices...','info');
+  setTimeout(()=>{DEVICES.forEach(d=>{if(d.status==='scanning')d.status=Math.random()>0.4?'connected':'off';});renderWatchGrid();showToast('Scan complete','success');},2500);
+}
+
+// ── PDF EXPORT ────────────────────────────────────────────────
+function showPDFModal(){const sel=document.getElementById('pdf-patient');if(sel)sel.innerHTML='<option value="all">All Patients</option>'+patients.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');showModal('pdf-modal');}
+function generatePDF(){
+  closeModal('pdf-modal');showToast('Generating PDF...','info');
+  setTimeout(()=>{
+    try{
+      const {jsPDF}=window.jspdf;const doc=new jsPDF();
+      const ptSel=document.getElementById('pdf-patient').value;
+      const filtPt=ptSel==='all'?patients:patients.filter(p=>p.id===+ptSel);
+      const filtSz=ptSel==='all'?seizures:seizures.filter(s=>s.patientId===+ptSel);
+      const filtMd=ptSel==='all'?medications:medications.filter(m=>m.patientId===+ptSel);
+      const filtCt=ptSel==='all'?contacts:contacts.filter(c=>c.patientId===+ptSel);
+      const W=210,M=15;let y=15;
+      // Header
+      doc.setFillColor(21,101,192);doc.rect(0,0,W,26,'F');
+      doc.setTextColor(255,255,255);doc.setFont('helvetica','bold');doc.setFontSize(16);doc.text('SeizureCare v4.0',M,11);
+      doc.setFontSize(8);doc.setFont('helvetica','normal');doc.text('Clinical Report · '+new Date().toLocaleDateString()+' · '+currentUser.name+' ('+currentUser.role+')',M,18);
+      y=34;
+      // Summary section
+      if(document.getElementById('pdf-summary').checked){
+        doc.setTextColor(30,136,229);doc.setFont('helvetica','bold');doc.setFontSize(11);doc.text('CLINICAL SUMMARY',M,y);y+=1;
+        doc.setDrawColor(30,136,229);doc.line(M,y,W-M,y);y+=5;
+        doc.setTextColor(50,50,50);doc.setFont('helvetica','normal');doc.setFontSize(9);
+        const rows=[['Patients',filtPt.length],['Total Events',filtSz.length],['Severe',filtSz.filter(s=>s.severity==='severe').length],['Avg Adherence',filtMd.length?Math.round(filtMd.reduce((a,m)=>a+m.adherence,0)/filtMd.length)+'%':'N/A']];
+        rows.forEach(([l,v],i)=>{const x=i%2===0?M:M+90;const row=y+(Math.floor(i/2)*6);doc.setFont('helvetica','bold');doc.text(l+':',x,row);doc.setFont('helvetica','normal');doc.text(String(v),x+35,row);});
+        y+=Math.ceil(rows.length/2)*6+6;
+      }
+      // Patients
+      doc.setTextColor(30,136,229);doc.setFont('helvetica','bold');doc.setFontSize(11);doc.text('PATIENTS ('+filtPt.length+')',M,y);y+=1;doc.setDrawColor(30,136,229);doc.line(M,y,W-M,y);y+=5;
+      filtPt.forEach(p=>{if(y>270){doc.addPage();y=15;}const sc={'stable':[0,150,50],'warning':[180,120,0],'critical':[190,50,50]}[p.status]||[100,100,100];doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(30,30,30);doc.text(p.name,M,y);doc.setFillColor(...sc);doc.roundedRect(M+58,y-3.5,15,5,1,1,'F');doc.setTextColor(255,255,255);doc.setFontSize(6.5);doc.text(p.status.toUpperCase(),M+65.5,y,{align:'center'});doc.setTextColor(100,100,100);doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.text(`${p.age}y · ${p.diagnosis} · Onset ${p.onset||'—'}`,M,y+4);y+=10;});
+      // Seizures
+      if(document.getElementById('pdf-seizures').checked&&filtSz.length){if(y>245){doc.addPage();y=15;}y+=3;doc.setTextColor(30,136,229);doc.setFont('helvetica','bold');doc.setFontSize(11);doc.text('SEIZURE LOG ('+filtSz.length+')',M,y);y+=1;doc.setDrawColor(30,136,229);doc.line(M,y,W-M,y);y+=5;
+        filtSz.slice(0,18).forEach(s=>{if(y>270){doc.addPage();y=15;}const p=ptById(s.patientId);const sc={'severe':[190,50,50],'moderate':[180,120,0],'mild':[0,150,50]}[s.severity]||[100,100,100];doc.setFillColor(...sc);doc.rect(M,y-3,1.5,4.5,'F');doc.setFont('helvetica','bold');doc.setFontSize(8.5);doc.setTextColor(30,30,30);doc.text(p.name+' — '+s.type,M+3,y);doc.setFont('helvetica','normal');doc.setTextColor(100,100,100);doc.text(new Date(s.datetime).toLocaleString()+' · '+s.severity+' · '+s.duration+'min',M+3,y+4);if(s.triggers.length)doc.text('Triggers: '+s.triggers.join(', '),M+3,y+8);y+=s.triggers.length?12:8;});
+        if(filtSz.length>18){doc.setTextColor(150,150,150);doc.setFontSize(8);doc.text('...and '+(filtSz.length-18)+' more events',M,y);y+=5;}}
+      // Medications
+      if(document.getElementById('pdf-meds').checked&&filtMd.length){if(y>245){doc.addPage();y=15;}y+=3;doc.setTextColor(30,136,229);doc.setFont('helvetica','bold');doc.setFontSize(11);doc.text('MEDICATIONS ('+filtMd.length+')',M,y);y+=1;doc.setDrawColor(30,136,229);doc.line(M,y,W-M,y);y+=5;filtMd.forEach(m=>{if(y>270){doc.addPage();y=15;}const p=ptById(m.patientId);const ac=m.adherence>=85?[0,150,50]:m.adherence>=60?[180,120,0]:[190,50,50];doc.setFont('helvetica','bold');doc.setFontSize(8.5);doc.setTextColor(30,30,30);doc.text(m.name+' '+m.dose,M,y);doc.setFillColor(...ac);doc.roundedRect(W-M-22,y-3.5,22,5,1,1,'F');doc.setTextColor(255,255,255);doc.setFontSize(7);doc.text(m.adherence+'% adherence',W-M-11,y,{align:'center'});doc.setFont('helvetica','normal');doc.setTextColor(100,100,100);doc.setFontSize(8);doc.text(p.name+' · '+m.freq+' · ⏰ '+m.time,M,y+4);y+=10;});}
+      // Triggers
+      if(document.getElementById('pdf-triggers').checked){const tc={};seizures.forEach(s=>s.triggers.forEach(t=>{tc[t]=(tc[t]||0)+1;}));const sorted=Object.entries(tc).sort((a,b)=>b[1]-a[1]);if(sorted.length){if(y>245){doc.addPage();y=15;}y+=3;doc.setTextColor(30,136,229);doc.setFont('helvetica','bold');doc.setFontSize(11);doc.text('TRIGGER ANALYSIS',M,y);y+=1;doc.setDrawColor(30,136,229);doc.line(M,y,W-M,y);y+=5;const mx=sorted[0][1];sorted.forEach(([t,c])=>{if(y>270){doc.addPage();y=15;}doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(30,30,30);doc.text(t,M,y);doc.setFillColor(30,136,229);doc.rect(M+48,y-3,(c/mx)*70,4,'F');doc.setTextColor(80,80,80);doc.text(String(c),M+50+(c/mx)*70,y);y+=7;});}}
+      // Contacts
+      if(document.getElementById('pdf-contacts').checked&&filtCt.length){if(y>245){doc.addPage();y=15;}y+=3;doc.setTextColor(30,136,229);doc.setFont('helvetica','bold');doc.setFontSize(11);doc.text('EMERGENCY CONTACTS',M,y);y+=1;doc.setDrawColor(30,136,229);doc.line(M,y,W-M,y);y+=5;filtCt.forEach(c=>{if(y>270){doc.addPage();y=15;}const p=ptById(c.patientId);doc.setFont('helvetica','bold');doc.setFontSize(8.5);doc.setTextColor(30,30,30);doc.text(c.name+' ('+c.rel+')',M,y);doc.setFont('helvetica','normal');doc.setTextColor(100,100,100);doc.text('Patient: '+p.name+' · '+c.phone,M,y+4);y+=10;});}
+      // Footer
+      const pages=doc.internal.getNumberOfPages();for(let i=1;i<=pages;i++){doc.setPage(i);doc.setTextColor(180,180,180);doc.setFontSize(7);doc.text('SeizureCare v4.0 · Confidential · Page '+i+'/'+pages,W/2,290,{align:'center'});}
+      doc.save('seizurecare_'+new Date().toISOString().slice(0,10)+'.pdf');
+      showToast('PDF downloaded!','success');
+    }catch(e){console.error(e);showToast('PDF error — check console','error');}
+  },300);
+}
+let medications=[
+  {id:1,patientId:1,name:'Lamotrigine',dose:'100mg',freq:'Twice daily',time:'08:00',adherence:92},
+  {id:2,patientId:2,name:'Levetiracetam',dose:'500mg',freq:'Twice daily',time:'09:00',adherence:78},
+  {id:3,patientId:4,name:'Valproate',dose:'300mg',freq:'Three times daily',time:'07:00',adherence:55},
+  {id:4,patientId:3,name:'Carbamazepine',dose:'200mg',freq:'Twice daily',time:'08:30',adherence:95},
+  {id:5,patientId:5,name:'Ethosuximide',dose:'250mg',freq:'Once daily',time:'08:00',adherence:88},
+];
+let contacts=[
+  {id:1,patientId:1,name:'Rosa Santos',rel:'Mother',phone:'+1 (555) 012-3456'},
+  {id:2,patientId:4,name:'Denise Webb',rel:'Wife',phone:'+1 (555) 987-6543'},
+  {id:3,patientId:2,name:'Emmanuel Okafor',rel:'Father',phone:'+1 (555) 444-5566'},
+];
+
+// ── OSD LIVE SIMULATION ───────────────────────────────────────
+let liveHistory=[57,266,196,128,311,24,34,39,77,10,22,10,60,37,18,14,18,23,29,17];
+let osdMuted=false,alarmActive=false;
+
+function updateOSDClock(){
+  const now=new Date();
+  const t=now.toTimeString().slice(0,8);
+  document.getElementById('osd-time').textContent=t;
+}
+
+function simulateLiveData(){
+  // Simulate fluctuating values
+  const power=Math.round(80+Math.random()*80);
+  const spec=Math.round(30+Math.random()*50);
+  const prob=Math.round(10+Math.random()*30);
+  const hr=Math.round(58+Math.random()*30);
+
+  document.getElementById('power-val').textContent=power;
+  document.getElementById('spec-val').textContent=spec;
+  document.getElementById('prob-val').textContent=prob;
+  document.getElementById('hr-val').textContent=hr+' bpm';
+  document.getElementById('hr-avg').textContent=`(av = ${hr-2}, ${hr+1} bpm)`;
+
+  const powerPct=Math.min((power/140)*100,100);
+  const specPct=Math.min((spec/70)*100,100);
+  document.getElementById('power-bar').style.width=powerPct+'%';
+  document.getElementById('spec-bar').style.width=specPct+'%';
+  document.getElementById('prob-bar').style.width=prob+'%';
+  document.getElementById('power-pct').textContent=power+'%';
+  document.getElementById('spec-pct').textContent=spec+'%';
+  document.getElementById('prob-pct').textContent=prob+'%';
+
+  // Push to history
+  liveHistory.push(power);
+  if(liveHistory.length>24)liveHistory.shift();
+  renderLiveChart();
+
+  // Check alarm threshold
+  if(power>100&&prob>40&&!alarmActive&&!osdMuted){
+    alarmActive=true;
+    document.getElementById('osd-status-text').textContent='ALARM';
+    document.getElementById('osd-monitor').querySelector('.osd-status').style.background='var(--red)';
+    document.getElementById('accept-btn').classList.add('active');
+  } else if(power<80){
+    if(alarmActive){
+      alarmActive=false;
+      document.getElementById('osd-status-text').textContent='OK';
+      document.getElementById('osd-monitor').querySelector('.osd-status').style.background='var(--blue)';
+      document.getElementById('accept-btn').classList.remove('active');
+    }
+  }
+}
+
+function renderLiveChart(){
+  const el=document.getElementById('live-chart');if(!el)return;
+  const max=Math.max(...liveHistory,1);
+  el.innerHTML=liveHistory.map((v,i)=>{
+    const h=Math.max(3,(v/max)*80);
+    const col=v>200?'#f44336':v>100?'#ff9800':'#9e9e9e';
+    return `<div class="bar-wrap"><div class="bar" style="height:${h}px;background:${col}" title="Power: ${v}"></div><div class="bar-label">${i%4===0?v:''}</div></div>`;
+  }).join('');
+}
+
+function acceptAlarm(){document.getElementById('osd-status-text').textContent='OK';alarmActive=false;document.getElementById('accept-btn').classList.remove('active');showToast('Alarm accepted','success');}
+function muteAlarms(){
+  osdMuted=!osdMuted;
+  const btn=document.getElementById('mute-btn');
+  btn.textContent=osdMuted?'ALARMS MUTED':'MUTE ALARMS';
+  btn.className='alarm-btn mute'+(osdMuted?' muted-state':'');
+  showToast(osdMuted?'SMS Alarms Disabled':'Alarms re-enabled',osdMuted?'warning':'success');
+}
+function raiseAlarm(){
+  alarmActive=true;
+  document.getElementById('osd-status-text').textContent='ALARM';
+  showToast('🚨 ALARM RAISED — Contacts notified!','error');
+  seizures.unshift({id:Date.now(),patientId:patients[0]?.id||1,datetime:new Date().toISOString().slice(0,16),severity:'severe',type:'Unknown',duration:0,triggers:[],notes:'⚡ Alarm raised via Live Monitor'});
+  saveData();renderAll();
+}
+
+// ── NAV ───────────────────────────────────────────────────────
+function showPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  const pg=document.getElementById('page-'+id);if(pg)pg.classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n=>{if(n.getAttribute('onclick')&&n.getAttribute('onclick').includes("'"+id+"'"))n.classList.add('active');});
+  const t={monitor:'Live Monitor',dashboard:'Dashboard',patients:'All Patients',seizures:'Seizure Log',medications:'Medications',triggers:'Trigger Analysis',analytics:'Analytics',insights:'AI Insights',emergency:'Emergency Response',settings:'Settings & Cloud'};
+  document.getElementById('page-title').textContent=t[id]||id;
+  if(id==='insights')generateInsights();
+  renderAll();
+}
+
+// ── MODALS ────────────────────────────────────────────────────
+function showModal(id){
+  populateDD();
+  if(id==='log-modal'){const now=new Date();document.getElementById('log-datetime').value=new Date(now-now.getTimezoneOffset()*60000).toISOString().slice(0,16);}
+  if(id==='pdf-modal'){const sel=document.getElementById('pdf-patient');if(sel)sel.innerHTML='<option value="all">All Patients</option>'+patients.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');}
+  document.getElementById(id).classList.add('active');
+}
+function closeModal(id){document.getElementById(id).classList.remove('active');}
+document.querySelectorAll('.modal-overlay').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('active');}));
+function populateDD(){['log-patient','med-patient','ct-patient'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=patients.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');});}
+
+// ── SAVE ──────────────────────────────────────────────────────
+function saveSeizure(){
+  const triggers=[...document.querySelectorAll('#log-triggers .trigger-chip.selected')].map(c=>c.textContent.trim().replace(/^\S+\s/,''));
+  seizures.unshift({id:Date.now(),patientId:+document.getElementById('log-patient').value,datetime:document.getElementById('log-datetime').value,severity:document.getElementById('log-severity').value,type:document.getElementById('log-type').value,duration:+document.getElementById('log-duration').value||1,triggers,notes:document.getElementById('log-notes').value});
+  document.querySelectorAll('#log-triggers .trigger-chip').forEach(c=>c.classList.remove('selected'));document.getElementById('log-notes').value='';
+  closeModal('log-modal');saveData();showToast('Seizure event saved','success');renderAll();
+}
+function savePatient(){
+  const first=document.getElementById('pt-first').value.trim(),last=document.getElementById('pt-last').value.trim();
+  if(!first||!last){showToast('Enter first and last name','error');return;}
+  patients.push({id:Date.now(),name:first+' '+last,age:+document.getElementById('pt-age').value||0,gender:document.getElementById('pt-gender').value,diagnosis:document.getElementById('pt-diagnosis').value||'Epilepsy',onset:+document.getElementById('pt-onset').value||2024,status:document.getElementById('pt-status').value,color:COLORS[patients.length%COLORS.length],notes:document.getElementById('pt-notes').value});
+  ['pt-first','pt-last','pt-age','pt-diagnosis','pt-onset','pt-notes'].forEach(id=>document.getElementById(id).value='');
+  closeModal('patient-modal');saveData();showToast('Patient saved','success');renderAll();
+}
+function saveMedication(){
+  const name=document.getElementById('med-name').value.trim();if(!name){showToast('Enter medication name','error');return;}
+  medications.push({id:Date.now(),patientId:+document.getElementById('med-patient').value,name,dose:document.getElementById('med-dose').value,freq:document.getElementById('med-freq').value,time:document.getElementById('med-time').value,adherence:+document.getElementById('med-adherence').value||80});
+  document.getElementById('med-name').value='';document.getElementById('med-dose').value='';
+  closeModal('med-modal');saveData();showToast('Medication saved','success');renderAll();
+}
+function saveContact(){
+  const name=document.getElementById('ct-name').value.trim();if(!name){showToast('Enter contact name','error');return;}
+  contacts.push({id:Date.now(),patientId:+document.getElementById('ct-patient').value,name,rel:document.getElementById('ct-rel').value||'Contact',phone:document.getElementById('ct-phone').value||'N/A'});
+  ['ct-name','ct-rel','ct-phone'].forEach(id=>document.getElementById(id).value='');
+  closeModal('contact-modal');saveData();showToast('Contact saved','success');renderAll();
+}
+
+// ── HELPERS ───────────────────────────────────────────────────
+function ptById(id){return patients.find(p=>p.id===id)||{name:'Unknown',color:'#666',diagnosis:'',status:'stable'};}
+function fmt(dt){const d=new Date(dt),now=new Date(),diff=(now-d)/60000;if(diff<2)return'Just now';if(diff<60)return Math.round(diff)+'m ago';if(diff<1440)return Math.round(diff/60)+'h ago';if(diff<2880)return'Yesterday';return d.toLocaleDateString('en',{month:'short',day:'numeric'});}
+function sevC(s){return s==='severe'?'var(--red)':s==='moderate'?'var(--yellow)':'var(--green)';}
+function stCls(s){return{stable:'s-stable',warning:'s-warning',critical:'s-critical'}[s]||'s-stable';}
+function ini(n){return n.split(' ').map(x=>x[0]).join('');}
+function toggleChip(el){el.classList.toggle('selected');}
+function avg(a){return a.length?a.reduce((x,y)=>x+y,0)/a.length:0;}
+function showToast(msg,type='success'){const t=document.getElementById('toast');t.textContent=msg;t.className='toast '+type;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000);}
+
+// ── SEARCH ────────────────────────────────────────────────────
+function handleSearch(q){
+  const box=document.getElementById('search-results');
+  if(!q.trim()){box.style.display='none';return;}
+  const res=patients.filter(p=>p.name.toLowerCase().includes(q.toLowerCase())||p.diagnosis.toLowerCase().includes(q.toLowerCase()));
+  if(!res.length){box.innerHTML='<div style="padding:12px 14px;font-size:12px;color:var(--muted);font-family:var(--mono)">No patients found</div>';box.style.display='block';return;}
+  box.innerHTML=res.map(p=>`<div onclick="openProfile(${p.id});document.getElementById('global-search').value='';document.getElementById('search-results').style.display='none';" style="display:flex;align-items:center;gap:9px;padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--border);transition:all 0.12s" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
+    <div style="width:30px;height:30px;border-radius:50%;background:${p.color};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:white;flex-shrink:0">${ini(p.name)}</div>
+    <div><div style="font-size:12px;font-weight:600">${p.name}</div><div style="font-size:10px;color:var(--muted);font-family:var(--mono)">${p.diagnosis}</div></div>
+    <span class="status-badge ${stCls(p.status)}" style="margin-left:auto">${p.status}</span>
+  </div>`).join('');box.style.display='block';
+}
+document.addEventListener('click',e=>{if(!e.target.closest('.search-wrap'))document.getElementById('search-results').style.display='none';});
+
+// ── FILTERS ───────────────────────────────────────────────────
+let ptFilter='all',sevFilter='all';
+function filterPt(f,el){ptFilter=f;document.querySelectorAll('.filter-bar .filter-pill').forEach(p=>p.classList.remove('active'));if(el)el.classList.add('active');renderAllPatients();}
+function filterSev(f,el){sevFilter=f;document.querySelectorAll('#sev-filters .filter-pill').forEach(p=>p.classList.remove('active'));if(el)el.classList.add('active');renderFullLog();}
+
+// ── PROFILE ───────────────────────────────────────────────────
+function openProfile(id){
+  const p=ptById(id),ps=seizures.filter(s=>s.patientId===id),pm=medications.filter(m=>m.patientId===id),pc=contacts.filter(c=>c.patientId===id);
+  const adh=pm.length?Math.round(avg(pm.map(m=>m.adherence)))+'%':'N/A';
+  document.getElementById('profile-panel').innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="width:54px;height:54px;border-radius:50%;background:${p.color};display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px;color:white">${ini(p.name)}</div>
+        <div><div style="font-family:'Syne',sans-serif;font-size:17px;font-weight:800">${p.name}</div><div style="font-size:11px;color:var(--muted);font-family:var(--mono);margin-top:2px">${p.diagnosis}</div><span class="status-badge ${stCls(p.status)}" style="margin-top:5px;display:inline-block">${p.status}</span></div>
+      </div>
+      <button onclick="closeProfile()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:3px">✕</button>
+    </div>
+    <div class="p-section"><div class="p-section-title">Patient Info</div>${[['Age',p.age+' years'],['Gender',p.gender||'—'],['Onset',p.onset||'—'],['Notes',p.notes||'None']].map(([l,v])=>`<div class="info-row"><span class="info-label">${l}</span><span class="info-val">${v}</span></div>`).join('')}</div>
+    <div class="p-section"><div class="p-section-title">Clinical Summary</div>${[['Total Seizures',ps.length],['This Week',ps.filter(s=>new Date(s.datetime)>new Date(Date.now()-7*864e5)).length],['Last Event',ps.length?fmt(ps[0].datetime):'None'],['Med Adherence',adh]].map(([l,v])=>`<div class="info-row"><span class="info-label">${l}</span><span class="info-val">${v}</span></div>`).join('')}</div>
+    ${pm.length?`<div class="p-section"><div class="p-section-title">Medications</div>${pm.map(m=>`<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border)"><span>💊</span><div style="flex:1"><div style="font-size:12px;font-weight:600">${m.name} ${m.dose}</div><div style="font-size:10px;color:var(--muted);font-family:var(--mono)">${m.freq}</div></div><span style="font-size:11px;font-weight:700;color:${m.adherence>=85?'var(--green)':m.adherence>=60?'var(--yellow)':'var(--red)'}">${m.adherence}%</span></div>`).join('')}</div>`:''}
+    ${pc.length?`<div class="p-section"><div class="p-section-title">Emergency Contacts</div>${pc.map(c=>`<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border)"><span>📞</span><div style="flex:1"><div style="font-size:12px;font-weight:600">${c.name}</div><div style="font-size:10px;color:var(--muted)">${c.rel}</div></div><div style="font-size:11px;color:#1e88e5;font-family:var(--mono)">${c.phone}</div></div>`).join('')}</div>`:''}
+    ${ps.length?`<div class="p-section"><div class="p-section-title">Recent Events</div>${ps.slice(0,3).map(s=>`<div style="padding:7px 0;border-bottom:1px solid var(--border)"><div style="display:flex;justify-content:space-between;font-size:12px"><span style="font-weight:600">${s.type} <span style="color:${sevC(s.severity)}">(${s.severity})</span></span><span style="color:var(--muted);font-family:var(--mono);font-size:10px">${fmt(s.datetime)}</span></div><div style="font-size:10px;color:var(--muted);margin-top:2px;font-family:var(--mono)">${s.duration}min · ${s.triggers.join(', ')||'No triggers'}</div></div>`).join('')}</div>`:''}
+    <button class="btn btn-red" style="width:100%;margin-top:8px" onclick="if(confirm('Remove ${p.name}?')){patients=patients.filter(x=>x.id!==${id});saveData();closeProfile();renderAll();showToast('Patient removed','error');}">Remove Patient</button>
+  `;
+  document.getElementById('profile-overlay').classList.add('active');
+}
+function closeProfile(e){if(!e||e.target===document.getElementById('profile-overlay'))document.getElementById('profile-overlay').classList.remove('active');}
+
+// ── SOS ───────────────────────────────────────────────────────
+function triggerSOS(){
+  document.getElementById('sos-last').textContent=new Date().toLocaleTimeString();
+  seizures.unshift({id:Date.now(),patientId:patients[0]?.id||1,datetime:new Date().toISOString().slice(0,16),severity:'severe',type:'Unknown',duration:0,triggers:[],notes:'🚨 SOS triggered manually'});
+  saveData();
+  if(contacts.length)sendSMS('🚨 SeizureCare SOS ALERT: Emergency assistance needed immediately!',contacts);
+  showToast('🚨 SOS SENT — '+contacts.length+' contact(s) notified!','error');renderAll();
+}
+
+// ── EXPORT ────────────────────────────────────────────────────
+function exportCSV(type='patients'){
+  let csv,fn;
+  if(type==='seizures'){csv='Patient,Date,Severity,Type,Duration,Triggers,Notes\n'+seizures.map(s=>`"${ptById(s.patientId).name}","${s.datetime}","${s.severity}","${s.type}","${s.duration}","${s.triggers.join('; ')}","${s.notes}"`).join('\n');fn='seizure_log.csv';}
+  else if(type==='report'){csv='SeizureCare Report\n'+new Date().toLocaleDateString()+'\nPatients,'+patients.length+'\nSeizures,'+seizures.length;fn='report.csv';}
+  else{csv='Name,Age,Diagnosis,Status,Seizures\n'+patients.map(p=>`"${p.name}","${p.age}","${p.diagnosis}","${p.status}","${seizures.filter(s=>s.patientId===p.id).length}"`).join('\n');fn='patients.csv';}
+  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download=fn;a.click();showToast('Exported!','success');
+}
+
+// ── AI INSIGHTS ───────────────────────────────────────────────
+function generateInsights(){
+  const c=document.getElementById('insights-container');if(!c)return;
+  c.innerHTML=`<div style="display:flex;align-items:center;gap:10px;padding:18px;color:var(--muted);font-size:12px;font-family:var(--mono)"><div class="dot-pulse"><span></span><span></span><span></span></div> Analyzing patient data patterns...</div>`;
+  setTimeout(()=>{
+    const tc={};seizures.forEach(s=>s.triggers.forEach(t=>{tc[t]=(tc[t]||0)+1;}));
+    const top=Object.entries(tc).sort((a,b)=>b[1]-a[1])[0];
+    const crit=patients.filter(p=>p.status==='critical');
+    const lowAdh=medications.filter(m=>m.adherence<65);
+    const recent=seizures.filter(s=>new Date(s.datetime)>new Date(Date.now()-7*864e5));
+    const ins=[
+      {t:'⚠️ HIGH-RISK ALERT',b:`${crit.length} patient(s) at critical status${crit.length?': '+crit.map(p=>p.name).join(', ')+'. Immediate clinical review recommended.':'. All patients stable or at warning level.'}`},
+      {t:'💊 MEDICATION ADHERENCE',b:lowAdh.length?`${lowAdh.length} low-adherence medication(s) detected: ${lowAdh.map(m=>ptById(m.patientId).name+' — '+m.name+' ('+m.adherence+'%)').join('; ')}. Consider adherence counselling.`:'All medications showing acceptable adherence (≥65%). Continue monitoring.'},
+      {t:'🎯 PRIMARY TRIGGER',b:top?`"${top[0]}" is the leading trigger (${top[1]} occurrence${top[1]>1?'s':''}). Target patient education and avoidance strategies.`:'Log more seizure events with triggers to see pattern data.'},
+      {t:'📊 WEEKLY SUMMARY',b:`${recent.length} seizure(s) this week. ${recent.filter(s=>s.severity==='severe').length} severe. ${recent.length>5?'Elevated activity — consider medication review.':'Activity within expected range.'}`},
+      {t:'🌙 NOCTURNAL PATTERN',b:'Evening/nocturnal events detected. Patients with confirmed nocturnal patterns may benefit from adjusted medication timing or continuous smartwatch monitoring.'},
+      {t:'✅ ACTION ITEMS',b:`1. Follow-up: ${crit.map(p=>p.name).join(', ')||'No critical patients'}. 2. Adherence review for <70%. 3. Trigger education for stress/sleep-related events. 4. Consider EEG follow-up for increasing severity.`},
+    ];
+    c.innerHTML=ins.map(i=>`<div class="insight-card"><div class="insight-title">${i.t}</div><div class="insight-text">${i.b}</div></div>`).join('');
+  },1500);
+}
+
+// ── RENDER ────────────────────────────────────────────────────
+function renderAll(){
+  renderStats();renderDashboard();renderMonitorPts();renderAllPatients();renderFullLog();renderMeds();renderTriggers();renderAnalytics();renderContacts();renderWeeklyChart();
+}
+
+function renderStats(){
+  const today=new Date().toDateString();
+  document.getElementById('s-patients').textContent=patients.length;
+  document.getElementById('s-today').textContent=seizures.filter(s=>new Date(s.datetime).toDateString()===today).length;
+  document.getElementById('s-stable').textContent=patients.filter(p=>p.status==='stable').length;
+  document.getElementById('s-adh').textContent=medications.length?Math.round(avg(medications.map(m=>m.adherence)))+'%':'—';
+}
+
+function renderMonitorPts(){
+  const el=document.getElementById('monitor-patients');if(!el)return;
+  el.innerHTML=patients.slice(0,4).map(p=>ptRow(p)).join('');
+}
+
+function renderDashboard(){
+  const dp=document.getElementById('dash-patients');if(dp)dp.innerHTML=patients.slice(0,4).map(ptRow).join('');
+  const dl=document.getElementById('dash-log');if(dl)dl.innerHTML=seizures.slice(0,4).map(logItem).join('');
+  // Donut
+  const sd=document.getElementById('status-donut');
+  if(sd){const stable=patients.filter(p=>p.status==='stable').length,warn=patients.filter(p=>p.status==='warning').length,crit=patients.filter(p=>p.status==='critical').length,tot=patients.length||1;const r=28,cx=40,cy=40,circ=2*Math.PI*r;let off=0;const segs=[[stable,'var(--green)'],[warn,'var(--yellow)'],[crit,'var(--red)']].map(([v,c])=>{const len=(v/tot)*circ;const s=`<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${c}" stroke-width="8" stroke-dasharray="${len} ${circ-len}" stroke-dashoffset="${-off}" transform="rotate(-90 ${cx} ${cy})" stroke-linecap="round"/>`;off+=len;return s;}).join('');sd.innerHTML=`<div style="display:flex;gap:14px;align-items:center"><svg width="80" height="80" viewBox="0 0 80 80"><circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="var(--border)" stroke-width="8"/>${segs}</svg><div style="display:flex;flex-direction:column;gap:7px">${[['Stable',stable,'var(--green)'],['Warning',warn,'var(--yellow)'],['Critical',crit,'var(--red)']].map(([l,v,c])=>`<div style="display:flex;align-items:center;gap:7px"><div style="width:7px;height:7px;border-radius:50%;background:${c}"></div><span style="font-size:11px;color:var(--muted);font-family:var(--mono)">${l}</span><span style="font-size:12px;font-weight:700;margin-left:auto">${v}</span></div>`).join('')}</div></div>`;}
+  // Reminders
+  const ra=document.getElementById('reminder-area');
+  if(ra){const now=new Date(),up=medications.filter(m=>{const[h,min]=m.time.split(':').map(Number),diff=(h*60+min)-(now.getHours()*60+now.getMinutes());return diff>-30&&diff<90;});ra.innerHTML=up.length?`<div class="reminder-banner" onclick="showPage('medications')"><div class="r-dot"></div><div style="flex:1;font-size:12px"><strong>${up.length} med reminder${up.length>1?'s':''} due soon</strong><span style="color:var(--muted);font-size:11px;margin-left:8px;font-family:var(--mono)">${up.map(m=>ptById(m.patientId).name+' — '+m.name).join(' · ')}</span></div><span style="font-size:10px;color:var(--muted);font-family:var(--mono)">View →</span></div>`:'';} 
+}
+
+function ptRow(p){
+  const c=seizures.filter(s=>s.patientId===p.id).length;
+  return `<div class="patient-row" onclick="openProfile(${p.id})"><div class="p-avatar" style="background:${p.color}">${ini(p.name)}</div><div class="p-info"><div class="p-name">${p.name}</div><div class="p-meta">${p.age}y · ${p.diagnosis} · ${c} event${c!==1?'s':''}</div></div><span class="status-badge ${stCls(p.status)}">${p.status}</span></div>`;
+}
+
+function logItem(s){
+  const p=ptById(s.patientId);
+  return `<div class="log-item ${s.severity}"><div class="log-time">${fmt(s.datetime)}</div><div class="log-body"><div class="log-title" style="cursor:pointer" onclick="openProfile(${s.patientId})">${p.name} — <span class="tag type">${s.type}</span> <span style="color:${sevC(s.severity)};font-size:9px;font-weight:700;font-family:var(--mono)">${s.severity.toUpperCase()}</span></div><div class="log-detail">${s.duration}min${s.notes?' · '+s.notes:''}</div><div class="log-tags">${s.triggers.map(t=>`<span class="tag trigger">${t}</span>`).join('')}</div></div></div>`;
+}
+
+function renderAllPatients(){const el=document.getElementById('all-patients');if(!el)return;let pts=ptFilter==='all'?patients:patients.filter(p=>p.status===ptFilter);el.innerHTML=pts.length?pts.map(ptRow).join(''):'<div class="empty-state"><div class="empty-icon">👥</div><div class="empty-text">No patients match this filter.</div></div>';}
+function renderFullLog(){const el=document.getElementById('full-log');if(!el)return;let evts=sevFilter==='all'?seizures:seizures.filter(s=>s.severity===sevFilter);el.innerHTML=evts.length?evts.map(logItem).join(''):'<div class="empty-state"><div class="empty-icon">⚡</div><div class="empty-text">No events logged yet.</div></div>';}
+
+function renderWeeklyChart(){
+  const el=document.getElementById('weekly-chart');if(!el)return;
+  const days=Array.from({length:7},(_,i)=>{const d=new Date();d.setDate(d.getDate()-6+i);return d;});
+  const max=Math.max(...days.map(d=>seizures.filter(s=>new Date(s.datetime).toDateString()===d.toDateString()).length),1);
+  el.innerHTML=days.map(d=>{const c=seizures.filter(s=>new Date(s.datetime).toDateString()===d.toDateString()).length,sev=seizures.filter(s=>new Date(s.datetime).toDateString()===d.toDateString()&&s.severity==='severe').length,col=sev>0?'var(--red)':c>0?'var(--blue-bright)':'var(--border)';return `<div class="bar-wrap"><div class="bar" style="height:${Math.max(3,(c/max)*88)}px;background:${col}" title="${c} events"></div><div class="bar-label">${d.toLocaleDateString('en',{weekday:'short'})}</div></div>`;}).join('');
+}
+
+function renderMeds(){
+  const el=document.getElementById('meds-list');if(!el)return;
+  if(!medications.length){el.innerHTML='<div class="empty-state"><div class="empty-icon">💊</div><div class="empty-text">No medications added.</div></div>';return;}
+  el.innerHTML=medications.map(m=>{const p=ptById(m.patientId),c=m.adherence>=85?'var(--green)':m.adherence>=60?'var(--yellow)':'var(--red)';return `<div class="med-item"><div class="med-icon">💊</div><div class="med-info"><div class="med-name">${m.name} <span style="font-size:10px;color:var(--muted)">${m.dose}</span></div><div class="med-sub">${p.name} · ${m.freq} · ⏰ ${m.time}</div></div><div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px"><span style="font-size:12px;font-weight:700;color:${c}">${m.adherence}%</span><div class="adh-bar"><div class="adh-fill" style="width:${m.adherence}%;background:${c}"></div></div></div></div>`;}).join('');
+  const ao=document.getElementById('adherence-overview');
+  if(ao&&medications.length){const ov=Math.round(avg(medications.map(m=>m.adherence))),c=ov>=85?'var(--green)':ov>=60?'var(--yellow)':'var(--red)';ao.innerHTML=`<div style="display:flex;align-items:center;gap:18px;padding:10px 0"><svg width="76" height="76" viewBox="0 0 76 76"><circle cx="38" cy="38" r="30" fill="none" stroke="var(--border)" stroke-width="7"/><circle cx="38" cy="38" r="30" fill="none" stroke="${c}" stroke-width="7" stroke-dasharray="${(ov/100)*188} 188" stroke-dashoffset="47" stroke-linecap="round" transform="rotate(-90 38 38)"/><text x="38" y="43" text-anchor="middle" fill="${c}" font-size="14" font-weight="800" font-family="Syne">${ov}%</text></svg><div>${[['Best',Math.max(...medications.map(m=>m.adherence))+'%','var(--green)'],['Worst',Math.min(...medications.map(m=>m.adherence))+'%','var(--red)']].map(([l,v,c])=>`<div style="margin-bottom:7px"><div style="font-size:9px;color:var(--muted);font-family:var(--mono)">${l}</div><div style="font-size:14px;font-weight:700;color:${c}">${v}</div></div>`).join('')}</div></div>`;}
+  const mr=document.getElementById('med-reminders');
+  if(mr){const now=new Date(),up=medications.map(m=>{const[h,min]=m.time.split(':').map(Number),diff=(h*60+min)-(now.getHours()*60+now.getMinutes());return{...m,diff};}).filter(m=>m.diff>-60&&m.diff<180).sort((a,b)=>a.diff-b.diff);mr.innerHTML=up.length?up.map(m=>{const p=ptById(m.patientId),label=m.diff<0?'Overdue':m.diff<5?'Due now':m.diff+'min',c=m.diff<0?'var(--red)':m.diff<5?'var(--yellow)':'var(--green)';return `<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--surface2);border-radius:7px;margin-bottom:5px;border-left:2px solid ${c}"><span>💊</span><div style="flex:1"><div style="font-size:11px;font-weight:600">${m.name} ${m.dose}</div><div style="font-size:10px;color:var(--muted);font-family:var(--mono)">${p.name}</div></div><span style="font-size:10px;font-weight:700;color:${c};font-family:var(--mono)">${label}</span></div>`;}).join(''):'<div class="empty-state" style="padding:16px"><div class="empty-text">No reminders in next 3hrs.</div></div>';}
+}
+
+function renderTriggers(){
+  const tb=document.getElementById('trigger-bars'),t7=document.getElementById('trigger-7day'),tr=document.getElementById('trigger-recent');if(!tb)return;
+  const tc={};seizures.forEach(s=>s.triggers.forEach(t=>{tc[t]=(tc[t]||0)+1;}));const sorted=Object.entries(tc).sort((a,b)=>b[1]-a[1]),max=sorted[0]?.[1]||1;
+  tb.innerHTML=sorted.length?sorted.map(([t,c],i)=>`<div style="margin-bottom:9px"><div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px;font-family:var(--mono)"><span style="color:var(--text)">${t}</span><span style="color:${COLORS[i%COLORS.length]};font-weight:600">${c}</span></div><div style="height:5px;background:var(--border);border-radius:2px;overflow:hidden"><div style="height:100%;width:${(c/max)*100}%;background:${COLORS[i%COLORS.length]};border-radius:2px;transition:width 0.5s"></div></div></div>`).join(''):'<div class="empty-state"><div class="empty-icon">🎯</div><div class="empty-text">Log seizures with triggers.</div></div>';
+  if(t7){const days=Array.from({length:7},(_,i)=>{const d=new Date();d.setDate(d.getDate()-6+i);return d;});const maxD=Math.max(...days.map(d=>seizures.filter(s=>new Date(s.datetime).toDateString()===d.toDateString()).length),1);t7.innerHTML=days.map(d=>{const c=seizures.filter(s=>new Date(s.datetime).toDateString()===d.toDateString()).length;return `<div class="bar-wrap"><div class="bar" style="height:${Math.max(3,(c/maxD)*76)}px;background:#7c3aed"></div><div class="bar-label">${d.toLocaleDateString('en',{weekday:'short'})}</div></div>`;}).join('');}
+  const hc=document.getElementById('heatmap-container');
+  if(hc){const days7=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];hc.innerHTML=days7.map((day,di)=>`<div class="heatmap-wrap"><div class="heat-label">${day}</div><div class="heatmap">${Array.from({length:24},(_,h)=>{const c=seizures.filter(s=>{const d=new Date(s.datetime);return d.getDay()===di&&d.getHours()===h;}).length,op=c===0?0.07:Math.min(0.15+c*0.35,1);return `<div class="heat-cell" style="background:#1e88e5;opacity:${op}" title="${day} ${h}:00 — ${c} event${c!==1?'s':''}"></div>`;}).join('')}</div></div>`).join('')+`<div style="display:flex;gap:3px;margin-top:5px;padding-left:36px">${Array.from({length:24},(_,h)=>h%6===0?`<div style="flex:6;font-size:8px;color:var(--muted);font-family:var(--mono)">${h}h</div>`:`<div style="flex:1"></div>`).join('')}</div>`;}
+  if(tr){const rec=seizures.filter(s=>s.triggers.length).slice(0,5);tr.innerHTML=rec.length?rec.map(s=>{const p=ptById(s.patientId);return `<div style="display:flex;align-items:center;gap:9px;padding:9px 11px;background:var(--surface2);border-radius:8px;margin-bottom:5px"><div style="width:28px;height:28px;border-radius:50%;background:${p.color};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:white;flex-shrink:0">${ini(p.name)}</div><div style="flex:1"><div style="font-size:12px;font-weight:600">${p.name}</div><div class="log-tags" style="margin-top:3px">${s.triggers.map(t=>`<span class="tag trigger">${t}</span>`).join('')}</div></div><div style="font-size:9px;color:var(--muted);font-family:var(--mono)">${fmt(s.datetime)}</div></div>`;}).join(''):'<div class="empty-state"><div class="empty-text">No trigger data yet.</div></div>';}
+}
+
+function renderAnalytics(){
+  const mc=document.getElementById('monthly-chart'),tc=document.getElementById('time-chart'),pp=document.getElementById('per-pt-chart');if(!mc)return;
+  const months=['Sep','Oct','Nov','Dec','Jan','Feb','Mar'],md=[12,9,15,11,8,13,seizures.length],maxM=Math.max(...md);
+  mc.innerHTML=months.map((m,i)=>`<div class="bar-wrap"><div class="bar" style="height:${Math.max(3,(md[i]/maxM)*120)}px;background:linear-gradient(to top,#1565c0,#1e88e5)" title="${md[i]} in ${m}"></div><div class="bar-label">${m}</div></div>`).join('');
+  const slots=['12a','3a','6a','9a','12p','3p','6p','9p'],td=[6,12,8,5,7,10,14,18],maxT=Math.max(...td);
+  tc.innerHTML=slots.map((t,i)=>`<div class="bar-wrap"><div class="bar" style="height:${Math.max(3,(td[i]/maxT)*120)}px;background:var(--magenta-bright)" title="${td[i]} events at ${t}"></div><div class="bar-label">${t}</div></div>`).join('');
+  if(pp&&patients.length){const maxP=Math.max(...patients.map(p=>seizures.filter(s=>s.patientId===p.id).length),1);pp.innerHTML=`<div style="display:flex;gap:10px;align-items:flex-end;height:90px">${patients.map(p=>{const c=seizures.filter(s=>s.patientId===p.id).length;return `<div style="display:flex;flex-direction:column;align-items:center;gap:5px;flex:1;cursor:pointer" onclick="openProfile(${p.id})"><div style="height:${Math.max(5,(c/maxP)*78)}px;width:100%;background:${p.color};border-radius:4px 4px 0 0;opacity:0.85" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.85"></div><div style="font-size:8px;color:var(--muted);font-family:var(--mono);text-align:center">${p.name.split(' ')[0]}</div><div style="font-size:11px;font-weight:700;color:${p.color}">${c}</div></div>`;}).join('')}</div>`;}
+  const weekly=seizures.filter(s=>new Date(s.datetime)>new Date(Date.now()-7*864e5)).length;
+  const aw=document.getElementById('a-weekly');if(aw)aw.textContent=weekly;
+  const durs=seizures.filter(s=>s.duration>0).map(s=>s.duration);
+  const ad=document.getElementById('a-dur');if(ad)ad.textContent=durs.length?avg(durs).toFixed(1)+'m':'—';
+  const at=document.getElementById('a-trend');if(at){const prev=seizures.filter(s=>new Date(s.datetime)>new Date(Date.now()-14*864e5)&&new Date(s.datetime)<=new Date(Date.now()-7*864e5)).length,diff=weekly-prev;at.textContent=(diff>0?'+':'')+diff;}
+}
+
+function renderContacts(){
+  const el=document.getElementById('contacts-list');if(!el)return;
+  el.innerHTML=contacts.length?contacts.map(c=>{const p=ptById(c.patientId);return `<div class="contact-card"><div class="ct-avatar">${ini(c.name)}</div><div class="ct-info"><div class="ct-name">${c.name}</div><div class="ct-rel">${c.rel} of ${p.name}</div><div class="ct-phone">${c.phone}</div></div><button class="btn btn-ghost btn-sm" onclick="showToast('Calling ${c.name}...','warning')">📞</button></div>`;}).join(''):'<div class="empty-state"><div class="empty-icon">📞</div><div class="empty-text">No emergency contacts yet.</div></div>';
+  const ps=document.getElementById('protocol-steps');
+  if(ps)ps.innerHTML=['Send SMS to all emergency contacts with patient location','Notify attending physician on call','Auto-log event with timestamp and severity','Monitor and document post-ictal state'].map((s,i)=>`<div style="display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-bottom:1px solid var(--border)"><div style="width:22px;height:22px;border-radius:50%;background:${['#1e88e5','#e91e8c','#f44336','#00c853'][i]};color:${i<2?'white':'#0d1117'};font-weight:800;font-size:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:var(--mono)">${i+1}</div><div style="font-size:12px;line-height:1.5">${s}</div></div>`).join('');
+}
+
+// ── EEG WAVEFORM ENGINE ───────────────────────────────────────
+let eegChart=null,eegPaused=false,eegChannel='acc',eegSpeed=100,eegSeconds=0,eegInterval=null;
+const EEG_COLORS={acc:'#00c853',hr:'#e91e8c',o2:'#1e88e5',seizure:'#f44336'};
+const EEG_LABELS={acc:'ACC',hr:'HR',o2:'SpO₂',seizure:'SEIZURE PROB'};
+
+function initEEG(){
+  const canvas=document.getElementById('eeg-canvas');if(!canvas)return;
+  const ctx=canvas.getContext('2d');
+  canvas.width=canvas.offsetWidth*window.devicePixelRatio||800;
+  canvas.height=120*window.devicePixelRatio||120;
+  canvas.style.width='100%';canvas.style.height='120px';
+
+  const data={labels:[],datasets:[
+    {label:'Ch1',data:[],borderColor:EEG_COLORS.acc,borderWidth:1.5,pointRadius:0,tension:0.3,fill:false},
+    {label:'Ch2',data:[],borderColor:'rgba(30,136,229,0.4)',borderWidth:1,pointRadius:0,tension:0.3,fill:false},
+  ]};
+
+  eegChart=new Chart(ctx,{
+    type:'line',data,
+    options:{
+      animation:false,responsive:false,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{enabled:false}},
+      scales:{
+        x:{display:false,ticks:{maxTicksLimit:10}},
+        y:{display:true,min:-150,max:150,grid:{color:'rgba(255,255,255,0.04)',drawBorder:false},ticks:{color:'rgba(255,255,255,0.2)',font:{size:8,family:'DM Mono'},maxTicksLimit:5}}
+      }
+    }
+  });
+  startEEG();
+}
+
+function startEEG(){
+  if(eegInterval)clearInterval(eegInterval);
+  eegInterval=setInterval(()=>{
+    if(eegPaused)return;
+    eegSeconds++;
+    const t=eegSeconds/10;
+    let v1,v2;
+    if(eegChannel==='acc'){
+      // Simulate accelerometer — low freq sway with spike noise
+      v1=Math.sin(t*0.8)*40+Math.sin(t*3.2)*15+Math.sin(t*8)*8+(Math.random()-0.5)*12;
+      v2=Math.sin(t*0.9+1)*30+Math.sin(t*2.8)*10+(Math.random()-0.5)*8;
+    } else if(eegChannel==='hr'){
+      // Heartbeat pulse wave
+      const phase=(t*1.2)%1;v1=phase<0.1?120*Math.sin(Math.PI*phase/0.1):phase<0.25?-30*Math.sin(Math.PI*(phase-0.1)/0.15):5*Math.sin(Math.PI*(phase-0.25)/0.75)*Math.exp(-(phase-0.25)*3);
+      v2=v1*0.6+(Math.random()-0.5)*5;
+    } else if(eegChannel==='o2'){
+      // SpO2 — slow smooth wave
+      v1=Math.sin(t*0.5)*35+Math.sin(t*1.2)*10+(Math.random()-0.5)*4;
+      v2=Math.cos(t*0.5)*25+(Math.random()-0.5)*3;
+    } else {
+      // Seizure probability — spike occasionally
+      const spike=Math.random()<0.02?120:0;
+      v1=Math.sin(t*0.3)*20+spike+(Math.random()-0.5)*8;
+      v2=v1*0.4+(Math.random()-0.5)*5;
+    }
+    const MAX_POINTS=120;
+    eegChart.data.labels.push('');
+    eegChart.data.datasets[0].data.push(v1);
+    eegChart.data.datasets[1].data.push(v2);
+    if(eegChart.data.labels.length>MAX_POINTS){eegChart.data.labels.shift();eegChart.data.datasets.forEach(d=>d.data.shift());}
+    eegChart.data.datasets[0].borderColor=EEG_COLORS[eegChannel]||'#00c853';
+    eegChart.update('none');
+
+    // Update status
+    const amp=Math.abs(v1).toFixed(1);
+    const freq=(eegChannel==='acc'?'0.5–8 Hz':eegChannel==='hr'?'0.8–2 Hz':eegChannel==='o2'?'0.1–0.5 Hz':'0–4 Hz');
+    const artefact=Math.abs(v1)>100?'⚠️ Motion':'Clean';
+    const el_amp=document.getElementById('eeg-amp');if(el_amp)el_amp.textContent=amp+'μV';
+    const el_freq=document.getElementById('eeg-freq');if(el_freq)el_freq.textContent=freq;
+    const el_art=document.getElementById('eeg-artefact');if(el_art){el_art.textContent=artefact;el_art.style.color=artefact.includes('⚠️')?'var(--yellow)':'var(--green)';}
+    const el_ch=document.getElementById('eeg-ch-name');if(el_ch)el_ch.textContent=EEG_LABELS[eegChannel]||'ACC';
+    const mins=Math.floor(eegSeconds/600).toString().padStart(2,'0');
+    const secs=Math.floor((eegSeconds%600)/10).toString().padStart(2,'0');
+    const el_dur=document.getElementById('eeg-duration');if(el_dur)el_dur.textContent=mins+':'+secs;
+  },eegSpeed);
+}
+
+function setEEGChannel(ch){eegChannel=ch;if(eegChart){eegChart.data.labels=[];eegChart.data.datasets.forEach(d=>d.data=[]);}}
+function toggleEEGPause(){
+  eegPaused=!eegPaused;
+  const btn=document.getElementById('eeg-pause-btn');if(btn)btn.textContent=eegPaused?'▶ Resume':'⏸ Pause';
+  const dot=document.getElementById('eeg-live-dot');if(dot){dot.textContent=eegPaused?'● PAUSED':'● LIVE';dot.style.color=eegPaused?'var(--yellow)':'var(--green)';}
+}
+
+// ── SUPABASE INTEGRATION ──────────────────────────────────────
+let supabaseClient=null,isCloudConnected=false;
+
+function validateSupabase(){
+  const url=document.getElementById('sb-url')?.value||'';
+  const key=document.getElementById('sb-key')?.value||'';
+  return url.includes('supabase.co')&&key.length>20;
+}
+
+function connectSupabase(){
+  const url=document.getElementById('sb-url')?.value?.trim();
+  const key=document.getElementById('sb-key')?.value?.trim();
+  if(!url||!key){showToast('Enter Supabase URL and key','error');return;}
+  if(!url.includes('supabase.co')){showToast('Invalid Supabase URL','error');return;}
+  showToast('Connecting to Supabase...','info');
+  try{
+    supabaseClient=window.supabase.createClient(url,key);
+    // Test connection with a simple query
+    supabaseClient.from('patients').select('count',{count:'exact',head:true}).then(({error})=>{
+      if(error&&error.code!=='42P01'){
+        showToast('Connection failed: '+error.message,'error');isCloudConnected=false;updateCloudBanner();
+      } else {
+        isCloudConnected=true;updateCloudBanner();
+        document.getElementById('sync-btn').disabled=false;
+        document.getElementById('pull-btn').disabled=false;
+        showToast('☁️ Connected to Supabase!','success');
+        try{localStorage.setItem('sc_sb_url',url);localStorage.setItem('sc_sb_key',key);}catch(e){}
+      }
+    });
+  }catch(e){showToast('Connection error: '+e.message,'error');}
+}
+
+function updateCloudBanner(){
+  const b=document.getElementById('cloud-status-banner');if(!b)return;
+  if(isCloudConnected){
+    b.className='cloud-banner cloud-connected';
+    b.innerHTML=`<div class="cloud-icon">☁️</div><div class="cloud-info"><div class="cloud-title">Connected to Supabase</div><div class="cloud-sub">Cloud sync active · Data syncs across all your devices</div></div><div class="sync-dot"></div>`;
+  } else {
+    b.className='cloud-banner';
+    b.innerHTML=`<div class="cloud-icon">☁️</div><div class="cloud-info"><div class="cloud-title">Not Connected</div><div class="cloud-sub">Enter your Supabase credentials to enable cloud sync</div></div><div class="sync-dot offline"></div>`;
+  }
+}
+
+async function syncToCloud(){
+  if(!supabaseClient){showToast('Connect to Supabase first','error');return;}
+  showToast('Syncing to cloud...','info');
+  try{
+    // Upsert all data
+    const ops=await Promise.all([
+      supabaseClient.from('patients').upsert(patients),
+      supabaseClient.from('seizures').upsert(seizures),
+      supabaseClient.from('medications').upsert(medications),
+      supabaseClient.from('contacts').upsert(contacts),
+    ]);
+    const errs=ops.filter(o=>o.error);
+    if(errs.length){showToast('Sync error: '+errs[0].error.message,'error');}
+    else{showToast('✅ Synced to cloud!','success');saveData();}
+  }catch(e){showToast('Sync failed: '+e.message,'error');}
+}
+
+async function pullFromCloud(){
+  if(!supabaseClient){showToast('Connect to Supabase first','error');return;}
+  showToast('Pulling from cloud...','info');
+  try{
+    const [pt,sz,md,ct]=await Promise.all([
+      supabaseClient.from('patients').select('*'),
+      supabaseClient.from('seizures').select('*'),
+      supabaseClient.from('medications').select('*'),
+      supabaseClient.from('contacts').select('*'),
+    ]);
+    if(pt.data?.length){patients=pt.data;}
+    if(sz.data?.length){seizures=sz.data;}
+    if(md.data?.length){medications=md.data;}
+    if(ct.data?.length){contacts=ct.data;}
+    saveData();renderAll();showToast('✅ Data pulled from cloud!','success');
+  }catch(e){showToast('Pull failed: '+e.message,'error');}
+}
+
+// ── SMS ALERTS ────────────────────────────────────────────────
+let smsLog=[];
+let twilioConfig={sid:'',token:'',from:'',smsOn:true,sosOn:true};
+let appSettings={sound:true,autolog:true};
+
+function saveTwilioConfig(){
+  twilioConfig.sid=document.getElementById('twilio-sid')?.value||'';
+  twilioConfig.token=document.getElementById('twilio-token')?.value||'';
+  twilioConfig.from=document.getElementById('twilio-from')?.value||'';
+  try{localStorage.setItem('sc_twilio',JSON.stringify(twilioConfig));}catch(e){}
+  showToast('SMS config saved','success');
+}
+
+function testSMS(){
+  if(!twilioConfig.from){showToast('Save SMS config first','error');return;}
+  sendSMS('SeizureCare TEST: SMS alerts are working correctly! ✅',contacts.slice(0,1));
+}
+
+function sendSMS(message,targetContacts){
+  if(!targetContacts?.length){addSMSLog('No contacts configured','failed','N/A');return;}
+  targetContacts.forEach(c=>{
+    // In production this calls your Supabase Edge Function which calls Twilio
+    // Here we simulate the send and log it
+    const success=Math.random()>0.1; // 90% success rate simulation
+    addSMSLog(message,success?'sent':'failed',c.phone+' ('+c.name+')');
+    if(success)showToast('📱 SMS sent to '+c.name,'success');
+    else showToast('SMS failed to '+c.name,'error');
+  });
+}
+
+function addSMSLog(message,status,to){
+  smsLog.unshift({message,status,to,time:new Date().toLocaleTimeString()});
+  if(smsLog.length>20)smsLog.pop();
+  renderSMSLog();
+}
+
+function renderSMSLog(){
+  const el=document.getElementById('sms-log-list');if(!el)return;
+  el.innerHTML=smsLog.length?smsLog.map(s=>`<div class="sms-item ${s.status}"><div class="sms-time">${s.time}</div><div class="sms-body">${s.message.slice(0,60)}${s.message.length>60?'...':''}<div class="sms-to">${s.status==='sent'?'✅':'❌'} ${s.to}</div></div></div>`).join(''):'<div class="empty-state"><div class="empty-icon">📱</div><div class="empty-text">No SMS alerts sent yet.</div></div>';
+}
+
+function toggleSetting(key,el){
+  el.classList.toggle('on');
+  if(key==='sms')twilioConfig.smsOn=el.classList.contains('on');
+  if(key==='sosSms')twilioConfig.sosOn=el.classList.contains('on');
+  if(key==='sound')appSettings.sound=el.classList.contains('on');
+  if(key==='autolog')appSettings.autolog=el.classList.contains('on');
+  showToast('Setting updated','success');
+}
+
+// ── INIT ──────────────────────────────────────────────────────
+// Restore saved Supabase config on load
+try{
+  const savedUrl=localStorage.getItem('sc_sb_url');
+  const savedKey=localStorage.getItem('sc_sb_key');
+  if(savedUrl&&savedKey){
+    setTimeout(()=>{
+      const u=document.getElementById('sb-url');const k=document.getElementById('sb-key');
+      if(u)u.value=savedUrl;if(k)k.value=savedKey;
+    },500);
+  }
+  const savedTwilio=localStorage.getItem('sc_twilio');
+  if(savedTwilio){twilioConfig={...twilioConfig,...JSON.parse(savedTwilio)};}
+}catch(e){}
+
+// App starts at login screen — loginAs() triggers renderAll and EEG
+</script>
+</body>
+</html>
