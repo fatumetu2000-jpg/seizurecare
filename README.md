@@ -53,7 +53,7 @@ I am studying cybersecurity, so I want to be upfront about what this prototype d
 
 - **No real authentication.** The login screen is a demo role picker with quick-login buttons. There are no passwords, sessions or server-side access control, so roles do not actually restrict access.
 - **Unencrypted local storage.** Data is saved in plain `localStorage` in the browser. Real patient data would need encryption and proper storage.
-- **SMS needs a backend.** Twilio credentials must never live in client-side code. A production version should send SMS through a server-side function (for example a Supabase Edge Function) that keeps the secrets.
+- **SMS needs a backend.** Twilio credentials must never live in client-side code.This app does not store the Twilio Account SID or Auth Token in the browser; only the sender number is saved. A production version should send SMS through a server-side function (for example a Supabase Edge Function) that keeps the secrets. A production version should send SMS through a server-side function (for example a Supabase Edge Function) that keeps the secrets.
 - **Cloud security not hardened.** A production Supabase setup would need user authentication and row-level security policies.
 - **Simulated detection.** The live monitor and device connections are simulated; the app does not perform real seizure detection.
 - **Privacy and compliance.** Handling real health data would require compliance work (for example consent, audit logging and applicable data-protection law such as NDPR or GDPR).
