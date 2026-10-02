@@ -625,7 +625,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
         <div id="heatmap-container" style="margin-top:10px"></div>
         <div style="display:flex;align-items:center;gap:6px;margin-top:8px">
           <span style="font-size:9px;color:var(--muted);font-family:var(--mono)">LOW</span>
-          <div style="display:flex;gap:2px">${[0.1,0.3,0.55,0.75,1].map(o=>`<div style="width:14px;height:8px;border-radius:2px;background:#1e88e5;opacity:${o}"></div>`).join('')}</div>
+          <div style="display:flex;gap:2px"><div style="width:14px;height:8px;border-radius:2px;background:#1e88e5;opacity:0.1"></div><div style="width:14px;height:8px;border-radius:2px;background:#1e88e5;opacity:0.3"></div><div style="width:14px;height:8px;border-radius:2px;background:#1e88e5;opacity:0.55"></div><div style="width:14px;height:8px;border-radius:2px;background:#1e88e5;opacity:0.75"></div><div style="width:14px;height:8px;border-radius:2px;background:#1e88e5;opacity:1"></div></div>
           <span style="font-size:9px;color:var(--muted);font-family:var(--mono)">HIGH</span>
         </div>
       </div>
@@ -741,7 +741,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
           <strong style="color:var(--blue-bright)">Quick steps:</strong>
         </div>
         <div style="margin-top:10px;display:flex;flex-direction:column;gap:6px">
-          ${['npm install @capacitor/core @capacitor/cli @capacitor/android @capacitor/ios','npx cap init "SeizureCare" com.seizurecare.app','npx cap add android  &&  npx cap add ios','npx cap copy  &&  npx cap open android','In Android Studio → Build → Generate Signed APK'].map((cmd,i)=>`<div style="display:flex;gap:10px;align-items:flex-start"><div style="width:20px;height:20px;border-radius:50%;background:var(--blue);color:white;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:var(--mono)">${i+1}</div><code style="font-family:var(--mono);font-size:10px;background:var(--surface2);padding:4px 8px;border-radius:4px;color:var(--blue-bright);flex:1;word-break:break-all">${cmd}</code></div>`).join('')}
+          <div style="display:flex;gap:10px;align-items:flex-start"><div style="width:20px;height:20px;border-radius:50%;background:var(--blue);color:white;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:var(--mono)">1</div><code style="font-family:var(--mono);font-size:10px;background:var(--surface2);padding:4px 8px;border-radius:4px;color:var(--blue-bright);flex:1;word-break:break-all">npm install @capacitor/core @capacitor/cli @capacitor/android @capacitor/ios</code></div><div style="display:flex;gap:10px;align-items:flex-start"><div style="width:20px;height:20px;border-radius:50%;background:var(--blue);color:white;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:var(--mono)">2</div><code style="font-family:var(--mono);font-size:10px;background:var(--surface2);padding:4px 8px;border-radius:4px;color:var(--blue-bright);flex:1;word-break:break-all">npx cap init &quot;SeizureCare&quot; com.seizurecare.app</code></div><div style="display:flex;gap:10px;align-items:flex-start"><div style="width:20px;height:20px;border-radius:50%;background:var(--blue);color:white;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:var(--mono)">3</div><code style="font-family:var(--mono);font-size:10px;background:var(--surface2);padding:4px 8px;border-radius:4px;color:var(--blue-bright);flex:1;word-break:break-all">npx cap add android  &amp;&amp;  npx cap add ios</code></div><div style="display:flex;gap:10px;align-items:flex-start"><div style="width:20px;height:20px;border-radius:50%;background:var(--blue);color:white;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:var(--mono)">4</div><code style="font-family:var(--mono);font-size:10px;background:var(--surface2);padding:4px 8px;border-radius:4px;color:var(--blue-bright);flex:1;word-break:break-all">npx cap copy  &amp;&amp;  npx cap open android</code></div><div style="display:flex;gap:10px;align-items:flex-start"><div style="width:20px;height:20px;border-radius:50%;background:var(--blue);color:white;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:var(--mono)">5</div><code style="font-family:var(--mono);font-size:10px;background:var(--surface2);padding:4px 8px;border-radius:4px;color:var(--blue-bright);flex:1;word-break:break-all">In Android Studio → Build → Generate Signed APK</code></div>
         </div>
         <div style="margin-top:10px;font-size:10px;color:var(--muted);font-family:var(--mono)">See the Setup Guide PDF for the full Supabase SQL schema, Edge Function code for SMS, and Capacitor config.json.</div>
       </div>
@@ -941,7 +941,7 @@ function generatePDF(){
       const W=210,M=15;let y=15;
       // Header
       doc.setFillColor(21,101,192);doc.rect(0,0,W,26,'F');
-      doc.setTextColor(255,255,255);doc.setFont('helvetica','bold');doc.setFontSize(16);doc.text('SeizureCare v4.0',M,11);
+      doc.setTextColor(255,255,255);doc.setFont('helvetica','bold');doc.setFontSize(16);doc.text('SeizureCare v5.0',M,11);
       doc.setFontSize(8);doc.setFont('helvetica','normal');doc.text('Clinical Report · '+new Date().toLocaleDateString()+' · '+currentUser.name+' ('+currentUser.role+')',M,18);
       y=34;
       // Summary section
@@ -967,25 +967,12 @@ function generatePDF(){
       // Contacts
       if(document.getElementById('pdf-contacts').checked&&filtCt.length){if(y>245){doc.addPage();y=15;}y+=3;doc.setTextColor(30,136,229);doc.setFont('helvetica','bold');doc.setFontSize(11);doc.text('EMERGENCY CONTACTS',M,y);y+=1;doc.setDrawColor(30,136,229);doc.line(M,y,W-M,y);y+=5;filtCt.forEach(c=>{if(y>270){doc.addPage();y=15;}const p=ptById(c.patientId);doc.setFont('helvetica','bold');doc.setFontSize(8.5);doc.setTextColor(30,30,30);doc.text(c.name+' ('+c.rel+')',M,y);doc.setFont('helvetica','normal');doc.setTextColor(100,100,100);doc.text('Patient: '+p.name+' · '+c.phone,M,y+4);y+=10;});}
       // Footer
-      const pages=doc.internal.getNumberOfPages();for(let i=1;i<=pages;i++){doc.setPage(i);doc.setTextColor(180,180,180);doc.setFontSize(7);doc.text('SeizureCare v4.0 · Confidential · Page '+i+'/'+pages,W/2,290,{align:'center'});}
+      const pages=doc.internal.getNumberOfPages();for(let i=1;i<=pages;i++){doc.setPage(i);doc.setTextColor(180,180,180);doc.setFontSize(7);doc.text('SeizureCare v5.0 · Confidential · Page '+i+'/'+pages,W/2,290,{align:'center'});}
       doc.save('seizurecare_'+new Date().toISOString().slice(0,10)+'.pdf');
       showToast('PDF downloaded!','success');
     }catch(e){console.error(e);showToast('PDF error — check console','error');}
   },300);
 }
-let medications=[
-  {id:1,patientId:1,name:'Lamotrigine',dose:'100mg',freq:'Twice daily',time:'08:00',adherence:92},
-  {id:2,patientId:2,name:'Levetiracetam',dose:'500mg',freq:'Twice daily',time:'09:00',adherence:78},
-  {id:3,patientId:4,name:'Valproate',dose:'300mg',freq:'Three times daily',time:'07:00',adherence:55},
-  {id:4,patientId:3,name:'Carbamazepine',dose:'200mg',freq:'Twice daily',time:'08:30',adherence:95},
-  {id:5,patientId:5,name:'Ethosuximide',dose:'250mg',freq:'Once daily',time:'08:00',adherence:88},
-];
-let contacts=[
-  {id:1,patientId:1,name:'Rosa Santos',rel:'Mother',phone:'+1 (555) 012-3456'},
-  {id:2,patientId:4,name:'Denise Webb',rel:'Wife',phone:'+1 (555) 987-6543'},
-  {id:3,patientId:2,name:'Emmanuel Okafor',rel:'Father',phone:'+1 (555) 444-5566'},
-];
-
 // ── OSD LIVE SIMULATION ───────────────────────────────────────
 let liveHistory=[57,266,196,128,311,24,34,39,77,10,22,10,60,37,18,14,18,23,29,17];
 let osdMuted=false,alarmActive=false;
@@ -1466,11 +1453,13 @@ let twilioConfig={sid:'',token:'',from:'',smsOn:true,sosOn:true};
 let appSettings={sound:true,autolog:true};
 
 function saveTwilioConfig(){
-  twilioConfig.sid=document.getElementById('twilio-sid')?.value||'';
-  twilioConfig.token=document.getElementById('twilio-token')?.value||'';
+  // Security: the Twilio Account SID and Auth Token are secrets and are NOT kept in the browser.
+  // They belong in a server-side function (e.g. a Supabase Edge Function). Only the sender number is saved.
   twilioConfig.from=document.getElementById('twilio-from')?.value||'';
-  try{localStorage.setItem('sc_twilio',JSON.stringify(twilioConfig));}catch(e){}
-  showToast('SMS config saved','success');
+  const tk=document.getElementById('twilio-token');if(tk)tk.value='';
+  const sd=document.getElementById('twilio-sid');if(sd)sd.value='';
+  try{localStorage.setItem('sc_twilio',JSON.stringify({from:twilioConfig.from,smsOn:twilioConfig.smsOn,sosOn:twilioConfig.sosOn}));}catch(e){}
+  showToast('Sender number saved. Keep the Twilio SID/token on a server, not in the browser.','success');
 }
 
 function testSMS(){
@@ -1522,7 +1511,7 @@ try{
     },500);
   }
   const savedTwilio=localStorage.getItem('sc_twilio');
-  if(savedTwilio){twilioConfig={...twilioConfig,...JSON.parse(savedTwilio)};}
+  if(savedTwilio){const t=JSON.parse(savedTwilio);twilioConfig={...twilioConfig,from:t.from||'',smsOn:t.smsOn!==false,sosOn:t.sosOn!==false};localStorage.setItem('sc_twilio',JSON.stringify({from:twilioConfig.from,smsOn:twilioConfig.smsOn,sosOn:twilioConfig.sosOn}));}
 }catch(e){}
 
 // App starts at login screen — loginAs() triggers renderAll and EEG
